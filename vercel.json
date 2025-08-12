@@ -2,17 +2,35 @@
   "version": 2,
   "builds": [
     {
-      "src": "learning_platform/wsgi.py",
+      "src": "vercel_app.py",
       "use": "@vercel/python"
+    },
+    {
+      "src": "build.sh",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "staticfiles"
+      }
     }
   ],
   "routes": [
     {
+      "src": "/static/(.*)",
+      "dest": "/staticfiles/$1"
+    },
+    {
       "src": "/(.*)",
-      "dest": "learning_platform/wsgi.py"
+      "dest": "/vercel_app.py"
     }
   ],
   "env": {
-    "DEBUG": "False"
+    "DEBUG": "False",
+    "PYTHONPATH": ".",
+    "DJANGO_SETTINGS_MODULE": "learning_platform.settings"
+  },
+  "functions": {
+    "vercel_app.py": {
+      "includeFiles": "**"
+    }
   }
 } 
