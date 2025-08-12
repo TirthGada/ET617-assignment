@@ -1,0 +1,18 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "learning_platform/wsgi.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "learning_platform/wsgi.py"
+    }
+  ],
+  "env": {
+    "DEBUG": "False"
+  }
+} 
