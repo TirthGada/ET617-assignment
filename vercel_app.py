@@ -6,18 +6,19 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(BASE_DIR))
 
-# Set Django settings
+# Set environment variables for Vercel
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'learning_platform.settings')
+os.environ.setdefault('DEBUG', 'False')
 
 # Import Django and initialize
 import django
-from django.core.wsgi import get_wsgi_application
-
-# Initialize Django
 django.setup()
 
-# Get the WSGI application
-application = get_wsgi_application()
+# Import our initialization helper
+from vercel_init import get_initialized_application
+
+# Get the WSGI application with database initialization
+application = get_initialized_application()
 
 # This is the entry point for Vercel
 app = application

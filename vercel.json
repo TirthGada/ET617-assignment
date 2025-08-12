@@ -3,20 +3,16 @@
   "builds": [
     {
       "src": "vercel_app.py",
-      "use": "@vercel/python"
-    },
-    {
-      "src": "build.sh",
-      "use": "@vercel/static-build",
+      "use": "@vercel/python",
       "config": {
-        "distDir": "staticfiles"
+        "maxLambdaSize": "50mb"
       }
     }
   ],
   "routes": [
     {
       "src": "/static/(.*)",
-      "dest": "/staticfiles/$1"
+      "dest": "/static/$1"
     },
     {
       "src": "/(.*)",
@@ -26,11 +22,7 @@
   "env": {
     "DEBUG": "False",
     "PYTHONPATH": ".",
-    "DJANGO_SETTINGS_MODULE": "learning_platform.settings"
-  },
-  "functions": {
-    "vercel_app.py": {
-      "includeFiles": "**"
-    }
+    "DJANGO_SETTINGS_MODULE": "learning_platform.settings",
+    "SECRET_KEY": "django-insecure-vercel-demo-key-change-in-production"
   }
 } 
