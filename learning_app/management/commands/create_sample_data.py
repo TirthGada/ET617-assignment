@@ -49,7 +49,7 @@ Remember: HTML provides structure, CSS provides styling, and JavaScript provides
             title="CSS Styling Basics Video",
             defaults={
                 'content_type': 'video',
-                'video_url': 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+                'video_url': 'https://www.youtube.com/watch?v=Z4pCqK-V_Wo',
                 'video_duration': 120,
                 'order': 2
             }

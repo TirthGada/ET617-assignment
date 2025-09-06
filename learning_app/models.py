@@ -1,6 +1,9 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
+import uuid
+import random
+import string
 
 
 class Course(models.Model):
@@ -109,4 +112,133 @@ class VideoAnalytics(models.Model):
     completed = models.BooleanField(default=False)
     
     def __str__(self):
-        return f"{self.user.username} - {self.content.title} - {self.current_time}s" 
+        return f"{self.user.username} - {self.content.title} - {self.current_time}s"
+
+
+# New Quiz System Models
+
+class TeacherProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    email = models.EmailField(unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"Teacher: {self.user.username}"
+
+
+class LiveQuiz(models.Model):
+    QUIZ_STATUS = [
+        ('draft', 'Draft'),
+        ('active', 'Active'),
+        ('ended', 'Ended'),
+    ]
+    
+    teacher = models.ForeignKey(TeacherProfile, on_delete=models.CASCADE)
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    quiz_code = models.CharField(max_length=8, unique=True, blank=True)
+    status = models.CharField(max_length=10, choices=QUIZ_STATUS, default='draft')
+    created_at = models.DateTimeField(auto_now_add=True)
+    started_at = models.DateTimeField(null=True, blank=True)
+    ended_at = models.DateTimeField(null=True, blank=True)
+    time_limit = models.IntegerField(default=30, help_text="Time limit in minutes")
+    
+    def save(self, *args, **kwargs):
+        if not self.quiz_code:
+            self.quiz_code = self.generate_quiz_code()
+        super().save(*args, **kwargs)
+    
+    def generate_quiz_code(self):
+        return ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+    
+    def __str__(self):
+        return f"{self.title} ({self.quiz_code})"
+
+
+class QuizQuestion(models.Model):
+    QUESTION_TYPES = [
+        ('mcq', 'Multiple Choice'),
+        ('true_false', 'True/False'),
+    ]
+    
+    GENERATION_METHOD = [
+        ('manual', 'Manual'),
+        ('llm_text', 'LLM from Text'),
+        ('llm_pdf', 'LLM from PDF'),
+    ]
+    
+    quiz = models.ForeignKey(LiveQuiz, on_delete=models.CASCADE, related_name='questions')
+    question_text = models.TextField()
+    question_type = models.CharField(max_length=15, choices=QUESTION_TYPES, default='mcq')
+    option_a = models.CharField(max_length=500, blank=True)
+    option_b = models.CharField(max_length=500, blank=True)
+    option_c = models.CharField(max_length=500, blank=True)
+    option_d = models.CharField(max_length=500, blank=True)
+    correct_answer = models.CharField(max_length=1, choices=[('A', 'A'), ('B', 'B'), ('C', 'C'), ('D', 'D')])
+    explanation = models.TextField(blank=True)
+    generation_method = models.CharField(max_length=15, choices=GENERATION_METHOD, default='manual')
+    source_text = models.TextField(blank=True, help_text="Source text used for LLM generation")
+    order = models.PositiveIntegerField(default=0)
+    
+    class Meta:
+        ordering = ['order']
+    
+    def __str__(self):
+        return f"{self.quiz.title} - Q{self.order}"
+
+
+class QuizParticipant(models.Model):
+    quiz = models.ForeignKey(LiveQuiz, on_delete=models.CASCADE, related_name='participants')
+    student_name = models.CharField(max_length=100)
+    student_email = models.EmailField()
+    joined_at = models.DateTimeField(auto_now_add=True)
+    submitted_at = models.DateTimeField(null=True, blank=True)
+    score = models.IntegerField(default=0)
+    total_questions = models.IntegerField(default=0)
+    
+    class Meta:
+        unique_together = ['quiz', 'student_email']
+    
+    def __str__(self):
+        return f"{self.student_name} - {self.quiz.title}"
+
+
+class QuizAnswer(models.Model):
+    participant = models.ForeignKey(QuizParticipant, on_delete=models.CASCADE, related_name='answers')
+    question = models.ForeignKey(QuizQuestion, on_delete=models.CASCADE)
+    selected_answer = models.CharField(max_length=1, choices=[('A', 'A'), ('B', 'B'), ('C', 'C'), ('D', 'D')])
+    is_correct = models.BooleanField(default=False)
+    answered_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ['participant', 'question']
+    
+    def __str__(self):
+        return f"{self.participant.student_name} - {self.question.quiz.title} - Q{self.question.order}"
+
+
+class StudentAnalysis(models.Model):
+    participant = models.OneToOneField(QuizParticipant, on_delete=models.CASCADE, related_name='analysis')
+    weak_topics = models.JSONField(default=list, help_text="Topics where student performed poorly")
+    strong_topics = models.JSONField(default=list, help_text="Topics where student performed well")
+    recommendations = models.TextField(blank=True)
+    reading_material = models.TextField(blank=True)
+    practice_questions = models.JSONField(default=list, help_text="Additional practice questions")
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"Analysis for {self.participant.student_name}"
+
+
+class QuizAnalytics(models.Model):
+    quiz = models.OneToOneField(LiveQuiz, on_delete=models.CASCADE, related_name='analytics')
+    total_participants = models.IntegerField(default=0)
+    average_score = models.FloatField(default=0.0)
+    completion_rate = models.FloatField(default=0.0)
+    difficult_questions = models.JSONField(default=list, help_text="Questions with low success rate")
+    common_mistakes = models.JSONField(default=dict, help_text="Word cloud data for common wrong answers")
+    topic_performance = models.JSONField(default=dict, help_text="Performance by topic")
+    generated_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"Analytics for {self.quiz.title}" 

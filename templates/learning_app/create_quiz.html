@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+
+{% block title %}Create Quiz - Learning Platform{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">
+                    <i class="fas fa-plus me-2"></i>Create New Quiz
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Quiz Title *</label>
+                        <input type="text" class="form-control" id="title" name="title" required>
+                        <div class="form-text">Give your quiz a clear, descriptive title</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                        <div class="form-text">Optional: Provide additional context about the quiz</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="time_limit" class="form-label">Time Limit (minutes)</label>
+                        <input type="number" class="form-control" id="time_limit" name="time_limit" value="30" min="5" max="120">
+                        <div class="form-text">How long students have to complete the quiz</div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'teacher_dashboard' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-check me-1"></i>Create Quiz
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-body">
+                <h6 class="card-title">
+                    <i class="fas fa-lightbulb me-2 text-warning"></i>What happens next?
+                </h6>
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2">
+                        <i class="fas fa-arrow-right me-2 text-primary"></i>
+                        After creating the quiz, you'll be able to add questions
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-robot me-2 text-success"></i>
+                        Use AI to generate questions from text or PDF files
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-edit me-2 text-info"></i>
+                        Or add questions manually for complete control
+                    </li>
+                    <li>
+                        <i class="fas fa-play me-2 text-warning"></i>
+                        Once ready, start the quiz and share the code with students
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
