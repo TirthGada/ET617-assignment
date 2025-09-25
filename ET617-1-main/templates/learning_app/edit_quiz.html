@@ -1,0 +1,347 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Quiz - {{ quiz.title }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-edit me-2"></i>{{ quiz.title }}</h2>
+    <div>
+        {% if quiz.questions.count > 0 %}
+            <a href="{% url 'start_quiz' quiz.id %}" class="btn btn-success">
+                <i class="fas fa-play me-1"></i>Start Quiz
+            </a>
+        {% endif %}
+        <a href="{% url 'teacher_dashboard' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Quiz Info -->
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Quiz Information</h6>
+            </div>
+            <div class="card-body">
+                <p><strong>Status:</strong> 
+                    <span class="badge bg-secondary">{{ quiz.get_status_display }}</span>
+                </p>
+                <p><strong>Questions:</strong> {{ quiz.questions.count }}</p>
+                <p><strong>Time Limit:</strong> {{ quiz.time_limit }} minutes</p>
+                {% if quiz.quiz_code %}
+                <p><strong>Quiz Code:</strong> 
+                    <code class="bg-light p-1 rounded">{{ quiz.quiz_code }}</code>
+                </p>
+                {% endif %}
+                {% if quiz.description %}
+                <p><strong>Description:</strong><br>{{ quiz.description }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Add Questions Panel -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-plus me-2"></i>Add Questions</h6>
+            </div>
+            <div class="card-body">
+                <!-- Manual Question Tab -->
+                <div class="accordion" id="questionAccordion">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#manualQuestion">
+                                <i class="fas fa-edit me-2"></i>Manual Question
+                            </button>
+                        </h2>
+                        <div id="manualQuestion" class="accordion-collapse collapse show">
+                            <div class="accordion-body">
+                                <form id="manualQuestionForm">
+                                    <div class="mb-2">
+                                        <label class="form-label">Question</label>
+                                        <textarea class="form-control form-control-sm" name="question_text" rows="2" required></textarea>
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label">Option A</label>
+                                        <input type="text" class="form-control form-control-sm" name="option_a" required>
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label">Option B</label>
+                                        <input type="text" class="form-control form-control-sm" name="option_b" required>
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label">Option C</label>
+                                        <input type="text" class="form-control form-control-sm" name="option_c" required>
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label">Option D</label>
+                                        <input type="text" class="form-control form-control-sm" name="option_d" required>
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label">Correct Answer</label>
+                                        <select class="form-select form-select-sm" name="correct_answer" required>
+                                            <option value="A">A</option>
+                                            <option value="B">B</option>
+                                            <option value="C">C</option>
+                                            <option value="D">D</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label">Explanation (optional)</label>
+                                        <textarea class="form-control form-control-sm" name="explanation" rows="2"></textarea>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary btn-sm w-100">
+                                        <i class="fas fa-plus me-1"></i>Add Question
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#aiTextQuestion">
+                                <i class="fas fa-robot me-2"></i>AI from Text
+                            </button>
+                        </h2>
+                        <div id="aiTextQuestion" class="accordion-collapse collapse">
+                            <div class="accordion-body">
+                                <form id="aiTextForm">
+                                    <div class="mb-2">
+                                        <label class="form-label">Topic</label>
+                                        <input type="text" class="form-control form-control-sm" name="topic" value="{{ quiz.title }}">
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label">Text Content</label>
+                                        <textarea class="form-control form-control-sm" name="text_content" rows="4" placeholder="Paste your text content here..." required></textarea>
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label">Number of Questions</label>
+                                        <select class="form-select form-select-sm" name="num_questions">
+                                            <option value="3">3 Questions</option>
+                                            <option value="5" selected>5 Questions</option>
+                                            <option value="10">10 Questions</option>
+                                        </select>
+                                    </div>
+                                    <button type="submit" class="btn btn-success btn-sm w-100">
+                                        <i class="fas fa-magic me-1"></i>Generate Questions
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#aiPdfQuestion">
+                                <i class="fas fa-file-pdf me-2"></i>AI from PDF
+                            </button>
+                        </h2>
+                        <div id="aiPdfQuestion" class="accordion-collapse collapse">
+                            <div class="accordion-body">
+                                <form id="aiPdfForm" enctype="multipart/form-data">
+                                    <div class="mb-2">
+                                        <label class="form-label">Topic</label>
+                                        <input type="text" class="form-control form-control-sm" name="topic" value="{{ quiz.title }}">
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label">PDF File</label>
+                                        <input type="file" class="form-control form-control-sm" name="pdf_file" accept=".pdf" required>
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label">Number of Questions</label>
+                                        <select class="form-select form-select-sm" name="num_questions">
+                                            <option value="3">3 Questions</option>
+                                            <option value="5" selected>5 Questions</option>
+                                            <option value="10">10 Questions</option>
+                                        </select>
+                                    </div>
+                                    <button type="submit" class="btn btn-info btn-sm w-100">
+                                        <i class="fas fa-upload me-1"></i>Generate from PDF
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Questions List -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-list me-2"></i>Questions ({{ quiz.questions.count }})</h6>
+            </div>
+            <div class="card-body">
+                <div id="questionsList">
+                    {% if questions %}
+                        {% for question in questions %}
+                        <div class="card mb-3 question-card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">Question {{ question.order }}</h6>
+                                <div class="badge bg-secondary">{{ question.get_generation_method_display }}</div>
+                            </div>
+                            <div class="card-body">
+                                <p class="fw-bold">{{ question.question_text }}</p>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <p class="mb-1">
+                                            <span class="badge bg-light text-dark me-2">A</span>{{ question.option_a }}
+                                            {% if question.correct_answer == 'A' %}<i class="fas fa-check text-success ms-1"></i>{% endif %}
+                                        </p>
+                                        <p class="mb-1">
+                                            <span class="badge bg-light text-dark me-2">B</span>{{ question.option_b }}
+                                            {% if question.correct_answer == 'B' %}<i class="fas fa-check text-success ms-1"></i>{% endif %}
+                                        </p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <p class="mb-1">
+                                            <span class="badge bg-light text-dark me-2">C</span>{{ question.option_c }}
+                                            {% if question.correct_answer == 'C' %}<i class="fas fa-check text-success ms-1"></i>{% endif %}
+                                        </p>
+                                        <p class="mb-1">
+                                            <span class="badge bg-light text-dark me-2">D</span>{{ question.option_d }}
+                                            {% if question.correct_answer == 'D' %}<i class="fas fa-check text-success ms-1"></i>{% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+                                {% if question.explanation %}
+                                <div class="mt-2">
+                                    <small class="text-muted"><strong>Explanation:</strong> {{ question.explanation }}</small>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-question-circle fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No questions yet</h5>
+                            <p class="text-muted">Add your first question using the panel on the left!</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Modal -->
+<div class="modal fade" id="loadingModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center py-4">
+                <div class="spinner-border text-primary mb-3" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <h5>Generating questions...</h5>
+                <p class="text-muted mb-0">This may take a few moments</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
+    
+    // Manual question form
+    document.getElementById('manualQuestionForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const data = Object.fromEntries(formData.entries());
+        
+        fetch('{% url "add_question_manual" quiz.id %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred');
+        });
+    });
+    
+    // AI Text form
+    document.getElementById('aiTextForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        loadingModal.show();
+        
+        const formData = new FormData(this);
+        const data = Object.fromEntries(formData.entries());
+        
+        fetch('{% url "generate_questions_from_text" quiz.id %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            loadingModal.hide();
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            loadingModal.hide();
+            console.error('Error:', error);
+            alert('An error occurred');
+        });
+    });
+    
+    // AI PDF form
+    document.getElementById('aiPdfForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        loadingModal.show();
+        
+        const formData = new FormData(this);
+        
+        fetch('{% url "generate_questions_from_pdf" quiz.id %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            loadingModal.hide();
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            loadingModal.hide();
+            console.error('Error:', error);
+            alert('An error occurred');
+        });
+    });
+});
+</script>
+{% endblock %}

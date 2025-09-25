@@ -1,0 +1,219 @@
+{% extends 'base.html' %}
+
+{% block title %}Poll Results - {{ poll.title }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-chart-bar me-2"></i>{{ poll.title }} - Results</h2>
+    <a href="{% url 'teacher_polls' %}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left me-1"></i>Back to Polls
+    </a>
+</div>
+
+<div class="row">
+    <!-- Poll Summary -->
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Poll Summary</h6>
+            </div>
+            <div class="card-body">
+                <p><strong>Type:</strong> {{ poll.get_poll_type_display }}</p>
+                <p><strong>Total Responses:</strong> {{ analytics.total_responses|default:0 }}</p>
+                <p><strong>Started:</strong> {{ poll.started_at|date:"M d, Y H:i" }}</p>
+                <p><strong>Ended:</strong> {{ poll.ended_at|date:"M d, Y H:i" }}</p>
+                {% if poll.poll_code %}
+                <p><strong>Poll Code:</strong> <code>{{ poll.poll_code }}</code></p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Export Options -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-download me-2"></i>Export Data</h6>
+            </div>
+            <div class="card-body">
+                <button class="btn btn-outline-primary btn-sm w-100 mb-2" onclick="exportToCSV()">
+                    <i class="fas fa-file-csv me-1"></i>Export as CSV
+                </button>
+                <button class="btn btn-outline-secondary btn-sm w-100" onclick="printResults()">
+                    <i class="fas fa-print me-1"></i>Print Results
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Visualization -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Results Visualization</h6>
+            </div>
+            <div class="card-body">
+                {% if poll.poll_type in 'single_choice,multiple_choice' and analytics.response_distribution %}
+                    <canvas id="resultsChart" width="400" height="200"></canvas>
+                {% elif poll.poll_type == 'rating_scale' and analytics.average_rating %}
+                    <div class="text-center">
+                        <h3>Average Rating: {{ analytics.average_rating|floatformat:1 }}/5</h3>
+                        <div class="rating-display mb-4">
+                            {% for i in "12345" %}
+                                <i class="fas fa-star {% if analytics.average_rating >= i|add:0 %}text-warning{% else %}text-muted{% endif %}"></i>
+                            {% endfor %}
+                        </div>
+                        <canvas id="ratingChart" width="400" height="200"></canvas>
+                    </div>
+                {% else %}
+                    <div class="text-center">
+                        <h3>Total Responses: {{ analytics.total_responses|default:0 }}</h3>
+                        <p class="text-muted">No detailed analytics available for this poll type.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Individual Responses -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-list me-2"></i>Individual Responses</h6>
+            </div>
+            <div class="card-body">
+                {% if responses %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Response</th>
+                                    <th>Time</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for response in responses %}
+                                <tr>
+                                    <td>{{ response.student_name|default:"Anonymous" }}</td>
+                                    <td>
+                                        {% if poll.poll_type in 'single_choice,multiple_choice' %}
+                                            {% for option_id in response.selected_options %}
+                                                {% for option in poll.options.all %}
+                                                    {% if option.id|stringformat:"s" == option_id %}
+                                                        {{ option.option_text }}{% if not forloop.last %}, {% endif %}
+                                                    {% endif %}
+                                                {% endfor %}
+                                            {% endfor %}
+                                        {% elif poll.poll_type == 'text_response' %}
+                                            {{ response.text_response|truncatewords:10 }}
+                                        {% elif poll.poll_type == 'rating_scale' %}
+                                            {{ response.rating_value }}/5 stars
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ response.submitted_at|date:"M d, H:i" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted text-center">No responses recorded</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+{% if poll.poll_type in 'single_choice,multiple_choice' and analytics.response_distribution %}
+// Chart.js for results visualization
+const ctx = document.getElementById('resultsChart').getContext('2d');
+const chart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: [
+            {% for option, count in analytics.response_distribution.items %}
+                '{{ option }}'{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ],
+        datasets: [{
+            label: 'Responses',
+            data: [
+                {% for option, count in analytics.response_distribution.items %}
+                    {{ count }}{% if not forloop.last %},{% endif %}
+                {% endfor %}
+            ],
+            backgroundColor: [
+                'rgba(54, 162, 235, 0.8)',
+                'rgba(255, 99, 132, 0.8)',
+                'rgba(255, 205, 86, 0.8)',
+                'rgba(75, 192, 192, 0.8)',
+                'rgba(153, 102, 255, 0.8)',
+                'rgba(255, 159, 64, 0.8)'
+            ],
+            borderColor: [
+                'rgba(54, 162, 235, 1)',
+                'rgba(255, 99, 132, 1)',
+                'rgba(255, 205, 86, 1)',
+                'rgba(75, 192, 192, 1)',
+                'rgba(153, 102, 255, 1)',
+                'rgba(255, 159, 64, 1)'
+            ],
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1
+                }
+            }
+        }
+    }
+});
+{% endif %}
+
+{% if poll.poll_type == 'rating_scale' %}
+// Rating distribution chart
+const ratingCtx = document.getElementById('ratingChart').getContext('2d');
+const ratingChart = new Chart(ratingCtx, {
+    type: 'bar',
+    data: {
+        labels: ['1 Star', '2 Stars', '3 Stars', '4 Stars', '5 Stars'],
+        datasets: [{
+            label: 'Number of Responses',
+            data: [0, 0, 0, 0, 0], // This would need to be calculated from actual data
+            backgroundColor: 'rgba(255, 193, 7, 0.8)',
+            borderColor: 'rgba(255, 193, 7, 1)',
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1
+                }
+            }
+        }
+    }
+});
+{% endif %}
+
+// Export functions
+function exportToCSV() {
+    // This would generate and download a CSV file
+    alert('CSV export functionality would be implemented here');
+}
+
+function printResults() {
+    window.print();
+}
+</script>
+{% endblock %}

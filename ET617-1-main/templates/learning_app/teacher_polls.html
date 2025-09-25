@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+
+{% block title %}Polls - Teacher Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-poll me-2"></i>My Polls</h2>
+    <div>
+        <a href="{% url 'create_poll' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i>Create New Poll
+        </a>
+        <a href="{% url 'teacher_dashboard' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+        </a>
+    </div>
+</div>
+
+{% if polls %}
+    <div class="row">
+        {% for poll in polls %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">{{ poll.title }}</h6>
+                    <span class="badge bg-{% if poll.status == 'active' %}success{% elif poll.status == 'ended' %}secondary{% else %}warning{% endif %}">
+                        {{ poll.get_status_display }}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <p class="card-text text-muted">{{ poll.description|truncatewords:15 }}</p>
+                    
+                    <div class="mb-3">
+                        <small class="text-muted">
+                            <i class="fas fa-tag me-1"></i>{{ poll.get_poll_type_display }}
+                        </small>
+                        <br>
+                        <small class="text-muted">
+                            <i class="fas fa-users me-1"></i>{{ poll.responses.count }} responses
+                        </small>
+                    </div>
+                    
+                    {% if poll.poll_code %}
+                    <div class="mb-3">
+                        <label class="form-label small">Poll Code:</label>
+                        <div class="input-group input-group-sm">
+                            <input type="text" class="form-control" value="{{ poll.poll_code }}" readonly>
+                            <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('{{ poll.poll_code }}')">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer">
+                    <div class="btn-group w-100" role="group">
+                        <a href="{% url 'edit_poll' poll.id %}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-edit me-1"></i>Edit
+                        </a>
+                        {% if poll.status == 'draft' %}
+                            <a href="{% url 'start_poll' poll.id %}" class="btn btn-success btn-sm">
+                                <i class="fas fa-play me-1"></i>Start
+                            </a>
+                        {% elif poll.status == 'active' %}
+                            <a href="{% url 'poll_monitor' poll.id %}" class="btn btn-info btn-sm">
+                                <i class="fas fa-eye me-1"></i>Monitor
+                            </a>
+                            <a href="{% url 'end_poll' poll.id %}" class="btn btn-warning btn-sm">
+                                <i class="fas fa-stop me-1"></i>End
+                            </a>
+                        {% else %}
+                            <a href="{% url 'poll_results' poll.id %}" class="btn btn-secondary btn-sm">
+                                <i class="fas fa-chart-bar me-1"></i>Results
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="text-center py-5">
+        <i class="fas fa-poll fa-4x text-muted mb-3"></i>
+        <h5>No polls yet</h5>
+        <p class="text-muted">Create your first poll to start engaging with students!</p>
+        <a href="{% url 'create_poll' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i>Create Your First Poll
+        </a>
+    </div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(function() {
+        // Show success message
+        const button = event.target.closest('button');
+        const originalHTML = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-check"></i>';
+        button.classList.remove('btn-outline-secondary');
+        button.classList.add('btn-success');
+        
+        setTimeout(function() {
+            button.innerHTML = originalHTML;
+            button.classList.remove('btn-success');
+            button.classList.add('btn-outline-secondary');
+        }, 2000);
+    });
+}
+</script>
+{% endblock %}

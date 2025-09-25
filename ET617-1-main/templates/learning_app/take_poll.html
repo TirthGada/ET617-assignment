@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+
+{% block title %}Take Poll - {{ poll.title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-info text-white">
+                <h4 class="mb-0">
+                    <i class="fas fa-poll me-2"></i>{{ poll.title }}
+                </h4>
+            </div>
+            <div class="card-body">
+                {% if poll.description %}
+                <p class="text-muted mb-4">{{ poll.description }}</p>
+                {% endif %}
+                
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    {% if poll.poll_type == 'single_choice' %}
+                        <div class="mb-4">
+                            <h6 class="mb-3">Select one option:</h6>
+                            {% for option in options %}
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="radio" name="selected_options" 
+                                       value="{{ option.id }}" id="option_{{ option.id }}" required>
+                                <label class="form-check-label" for="option_{{ option.id }}">
+                                    {{ option.option_text }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    
+                    {% elif poll.poll_type == 'multiple_choice' %}
+                        <div class="mb-4">
+                            <h6 class="mb-3">Select one or more options:</h6>
+                            {% for option in options %}
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" name="selected_options" 
+                                       value="{{ option.id }}" id="option_{{ option.id }}">
+                                <label class="form-check-label" for="option_{{ option.id }}">
+                                    {{ option.option_text }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    
+                    {% elif poll.poll_type == 'text_response' %}
+                        <div class="mb-4">
+                            <h6 class="mb-3">Your response:</h6>
+                            <textarea class="form-control" name="text_response" rows="4" 
+                                      placeholder="Enter your response here..." required></textarea>
+                        </div>
+                    
+                    {% elif poll.poll_type == 'rating_scale' %}
+                        <div class="mb-4">
+                            <h6 class="mb-3">Rate from 1 to 5:</h6>
+                            <div class="rating-scale text-center">
+                                {% for i in "12345" %}
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="rating_value" 
+                                           value="{{ i }}" id="rating_{{ i }}" required>
+                                    <label class="form-check-label" for="rating_{{ i }}">
+                                        <i class="fas fa-star text-warning"></i> {{ i }}
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    
+                    {% elif poll.poll_type == 'yes_no' %}
+                        <div class="mb-4">
+                            <h6 class="mb-3">Select your answer:</h6>
+                            {% for option in options %}
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="radio" name="selected_options" 
+                                       value="{{ option.id }}" id="option_{{ option.id }}" required>
+                                <label class="form-check-label" for="option_{{ option.id }}">
+                                    {{ option.option_text }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'join_poll' %}" class="btn btn-secondary me-md-2">Cancel</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane me-1"></i>Submit Response
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Auto-focus on first input
+document.addEventListener('DOMContentLoaded', function() {
+    const firstInput = document.querySelector('input[type="radio"], input[type="checkbox"], textarea');
+    if (firstInput) {
+        firstInput.focus();
+    }
+});
+
+// Form validation
+document.querySelector('form').addEventListener('submit', function(e) {
+    const pollType = '{{ poll.poll_type }}';
+    
+    if (pollType === 'multiple_choice') {
+        const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
+        if (checkboxes.length === 0) {
+            e.preventDefault();
+            alert('Please select at least one option.');
+            return false;
+        }
+    }
+});
+</script>
+{% endblock %}

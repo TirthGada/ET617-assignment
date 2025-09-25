@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+
+{% block title %}Poll Results - {{ poll.title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0">
+                    <i class="fas fa-check-circle me-2"></i>Thank You!
+                </h4>
+            </div>
+            <div class="card-body text-center">
+                <h5 class="mb-3">{{ poll.title }}</h5>
+                
+                {% if poll.description %}
+                <p class="text-muted mb-4">{{ poll.description }}</p>
+                {% endif %}
+                
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle me-2"></i>
+                    Your response has been recorded successfully!
+                </div>
+                
+                {% if analytics %}
+                <div class="mt-4">
+                    <h6>Poll Results</h6>
+                    <p class="text-muted">Total responses: {{ analytics.total_responses }}</p>
+                    
+                    {% if poll.poll_type in 'single_choice,multiple_choice' and analytics.response_distribution %}
+                    <div class="results-chart">
+                        <canvas id="resultsChart" width="400" height="200"></canvas>
+                    </div>
+                    {% elif poll.poll_type == 'rating_scale' and analytics.average_rating %}
+                    <div class="rating-results">
+                        <h6>Average Rating: {{ analytics.average_rating|floatformat:1 }}/5</h6>
+                        <div class="rating-display">
+                            {% for i in "12345" %}
+                                <i class="fas fa-star {% if analytics.average_rating >= i|add:0 %}text-warning{% else %}text-muted{% endif %}"></i>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+                
+                <div class="mt-4">
+                    <a href="{% url 'join_poll' %}" class="btn btn-primary">
+                        <i class="fas fa-plus me-1"></i>Join Another Poll
+                    </a>
+                    <a href="{% url 'home' %}" class="btn btn-secondary">
+                        <i class="fas fa-home me-1"></i>Go Home
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+{% if poll.poll_type in 'single_choice,multiple_choice' and analytics.response_distribution %}
+// Chart.js for results visualization
+const ctx = document.getElementById('resultsChart').getContext('2d');
+const chart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: [
+            {% for option, count in analytics.response_distribution.items %}
+                '{{ option }}'{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ],
+        datasets: [{
+            label: 'Responses',
+            data: [
+                {% for option, count in analytics.response_distribution.items %}
+                    {{ count }}{% if not forloop.last %},{% endif %}
+                {% endfor %}
+            ],
+            backgroundColor: [
+                'rgba(54, 162, 235, 0.8)',
+                'rgba(255, 99, 132, 0.8)',
+                'rgba(255, 205, 86, 0.8)',
+                'rgba(75, 192, 192, 0.8)',
+                'rgba(153, 102, 255, 0.8)',
+                'rgba(255, 159, 64, 0.8)'
+            ],
+            borderColor: [
+                'rgba(54, 162, 235, 1)',
+                'rgba(255, 99, 132, 1)',
+                'rgba(255, 205, 86, 1)',
+                'rgba(75, 192, 192, 1)',
+                'rgba(153, 102, 255, 1)',
+                'rgba(255, 159, 64, 1)'
+            ],
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1
+                }
+            }
+        }
+    }
+});
+{% endif %}
+</script>
+{% endblock %}

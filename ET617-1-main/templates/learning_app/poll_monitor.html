@@ -1,0 +1,216 @@
+{% extends 'base.html' %}
+
+{% block title %}Monitor Poll - {{ poll.title }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-eye me-2"></i>{{ poll.title }}</h2>
+    <div>
+        <a href="{% url 'end_poll' poll.id %}" class="btn btn-warning">
+            <i class="fas fa-stop me-1"></i>End Poll
+        </a>
+        <a href="{% url 'teacher_polls' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Back to Polls
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Poll Info -->
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Poll Information</h6>
+            </div>
+            <div class="card-body">
+                <p><strong>Status:</strong> 
+                    <span class="badge bg-success">{{ poll.get_status_display }}</span>
+                </p>
+                <p><strong>Type:</strong> {{ poll.get_poll_type_display }}</p>
+                <p><strong>Poll Code:</strong> 
+                    <code class="bg-light p-1 rounded">{{ poll.poll_code }}</code>
+                    <button class="btn btn-outline-secondary btn-sm ms-2" onclick="copyToClipboard('{{ poll.poll_code }}')">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                </p>
+                <p><strong>Started:</strong> {{ poll.started_at|date:"M d, Y H:i" }}</p>
+                <p><strong>Responses:</strong> <span id="response-count">{{ analytics.total_responses }}</span></p>
+            </div>
+        </div>
+
+        <!-- QR Code -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-qrcode me-2"></i>QR Code</h6>
+            </div>
+            <div class="card-body text-center">
+                <div id="qrcode"></div>
+                <p class="small text-muted mt-2">Students can scan this to join the poll</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Results -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Live Results</h6>
+            </div>
+            <div class="card-body">
+                {% if poll.poll_type in 'single_choice,multiple_choice' %}
+                    <canvas id="resultsChart" width="400" height="200"></canvas>
+                {% elif poll.poll_type == 'rating_scale' %}
+                    <div class="text-center">
+                        <h3>Average Rating: <span id="average-rating">{{ analytics.average_rating|floatformat:1|default:"0.0" }}</span></h3>
+                        <div class="rating-display">
+                            {% for i in "12345" %}
+                                <i class="fas fa-star {% if analytics.average_rating >= i|add:0 %}text-warning{% else %}text-muted{% endif %}"></i>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="text-center">
+                        <h3>Total Responses: <span id="response-count">{{ analytics.total_responses }}</span></h3>
+                        <p class="text-muted">Real-time response tracking</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Recent Responses -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-users me-2"></i>Recent Responses</h6>
+            </div>
+            <div class="card-body">
+                <div id="recent-responses">
+                    {% for response in responses|slice:":10" %}
+                    <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+                        <div>
+                            <strong>{{ response.student_name|default:"Anonymous" }}</strong>
+                            <small class="text-muted d-block">
+                                {% if poll.poll_type in 'single_choice,multiple_choice' %}
+                                    {% for option_id in response.selected_options %}
+                                        {% for option in poll.options.all %}
+                                            {% if option.id|stringformat:"s" == option_id %}
+                                                {{ option.option_text }}{% if not forloop.last %}, {% endif %}
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% endfor %}
+                                {% elif poll.poll_type == 'text_response' %}
+                                    {{ response.text_response|truncatewords:10 }}
+                                {% elif poll.poll_type == 'rating_scale' %}
+                                    {{ response.rating_value }}/5 stars
+                                {% endif %}
+                            </small>
+                        </div>
+                        <small class="text-muted">{{ response.submitted_at|timesince }} ago</small>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted text-center">No responses yet</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+
+<script>
+// Generate QR Code
+QRCode.toCanvas(document.getElementById('qrcode'), '{{ request.build_absolute_uri }}/poll/join/', {
+    width: 150,
+    height: 150,
+    color: {
+        dark: '#000000',
+        light: '#FFFFFF'
+    }
+});
+
+// Copy to clipboard function
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(function() {
+        const button = event.target.closest('button');
+        const originalHTML = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-check"></i>';
+        button.classList.remove('btn-outline-secondary');
+        button.classList.add('btn-success');
+        
+        setTimeout(function() {
+            button.innerHTML = originalHTML;
+            button.classList.remove('btn-success');
+            button.classList.add('btn-outline-secondary');
+        }, 2000);
+    });
+}
+
+// Chart.js for results visualization
+{% if poll.poll_type in 'single_choice,multiple_choice' %}
+const ctx = document.getElementById('resultsChart').getContext('2d');
+const chart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: [
+            {% for option in poll.options.all %}
+                '{{ option.option_text }}'{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ],
+        datasets: [{
+            label: 'Responses',
+            data: [{{ chart_data|join:"," }}],
+            backgroundColor: [
+                'rgba(54, 162, 235, 0.8)',
+                'rgba(255, 99, 132, 0.8)',
+                'rgba(255, 205, 86, 0.8)',
+                'rgba(75, 192, 192, 0.8)',
+                'rgba(153, 102, 255, 0.8)',
+                'rgba(255, 159, 64, 0.8)'
+            ],
+            borderColor: [
+                'rgba(54, 162, 235, 1)',
+                'rgba(255, 99, 132, 1)',
+                'rgba(255, 205, 86, 1)',
+                'rgba(75, 192, 192, 1)',
+                'rgba(153, 102, 255, 1)',
+                'rgba(255, 159, 64, 1)'
+            ],
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1
+                }
+            }
+        }
+    }
+});
+
+// Auto-refresh every 5 seconds
+setInterval(function() {
+    fetch('{% url "poll_monitor" poll.id %}?ajax=1')
+        .then(response => response.json())
+        .then(data => {
+            // Update response count
+            document.getElementById('response-count').textContent = data.total_responses;
+            
+            // Update chart
+            chart.data.datasets[0].data = data.chart_data;
+            chart.update();
+            
+            // Update recent responses
+            document.getElementById('recent-responses').innerHTML = data.recent_responses;
+        })
+        .catch(error => console.error('Error:', error));
+}, 5000);
+{% endif %}
+</script>
+{% endblock %}

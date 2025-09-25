@@ -1,0 +1,168 @@
+{% extends 'base.html' %}
+
+{% block title %}Create Poll - Teacher Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-plus me-2"></i>Create New Poll</h2>
+    <a href="{% url 'teacher_polls' %}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left me-1"></i>Back to Polls
+    </a>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-poll me-2"></i>Poll Details</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Poll Title *</label>
+                        <input type="text" class="form-control" id="title" name="title" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3" placeholder="Optional description for your poll"></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="poll_type" class="form-label">Poll Type *</label>
+                        <select class="form-select" id="poll_type" name="poll_type" onchange="toggleOptions()">
+                            <option value="single_choice">Single Choice</option>
+                            <option value="multiple_choice">Multiple Choice</option>
+                            <option value="text_response">Text Response</option>
+                            <option value="rating_scale">Rating Scale (1-5)</option>
+                            <option value="yes_no">Yes/No</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Options for choice-based polls -->
+                    <div id="options-section" class="mb-3">
+                        <label class="form-label">Options *</label>
+                        <div id="options-container">
+                            <div class="input-group mb-2">
+                                <input type="text" class="form-control" name="options" placeholder="Option 1" required>
+                                <button type="button" class="btn btn-outline-danger" onclick="removeOption(this)">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                            <div class="input-group mb-2">
+                                <input type="text" class="form-control" name="options" placeholder="Option 2" required>
+                                <button type="button" class="btn btn-outline-danger" onclick="removeOption(this)">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="addOption()">
+                            <i class="fas fa-plus me-1"></i>Add Option
+                        </button>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="is_anonymous" name="is_anonymous" checked>
+                                <label class="form-check-label" for="is_anonymous">
+                                    Anonymous responses
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="allow_multiple_responses" name="allow_multiple_responses">
+                                <label class="form-check-label" for="allow_multiple_responses">
+                                    Allow multiple responses
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                        <a href="{% url 'teacher_polls' %}" class="btn btn-secondary me-md-2">Cancel</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>Create Poll
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let optionCount = 2;
+
+function toggleOptions() {
+    const pollType = document.getElementById('poll_type').value;
+    const optionsSection = document.getElementById('options-section');
+    
+    if (pollType === 'single_choice' || pollType === 'multiple_choice' || pollType === 'yes_no') {
+        optionsSection.style.display = 'block';
+        // Set required for option inputs
+        document.querySelectorAll('input[name="options"]').forEach(input => {
+            input.required = true;
+        });
+    } else {
+        optionsSection.style.display = 'none';
+        // Remove required from option inputs
+        document.querySelectorAll('input[name="options"]').forEach(input => {
+            input.required = false;
+        });
+    }
+    
+    // Handle Yes/No special case
+    if (pollType === 'yes_no') {
+        const container = document.getElementById('options-container');
+        container.innerHTML = `
+            <div class="input-group mb-2">
+                <input type="text" class="form-control" name="options" value="Yes" readonly>
+                <button type="button" class="btn btn-outline-secondary" disabled>
+                    <i class="fas fa-lock"></i>
+                </button>
+            </div>
+            <div class="input-group mb-2">
+                <input type="text" class="form-control" name="options" value="No" readonly>
+                <button type="button" class="btn btn-outline-secondary" disabled>
+                    <i class="fas fa-lock"></i>
+                </button>
+            </div>
+        `;
+    }
+}
+
+function addOption() {
+    const container = document.getElementById('options-container');
+    optionCount++;
+    
+    const optionDiv = document.createElement('div');
+    optionDiv.className = 'input-group mb-2';
+    optionDiv.innerHTML = `
+        <input type="text" class="form-control" name="options" placeholder="Option ${optionCount}" required>
+        <button type="button" class="btn btn-outline-danger" onclick="removeOption(this)">
+            <i class="fas fa-trash"></i>
+        </button>
+    `;
+    
+    container.appendChild(optionDiv);
+}
+
+function removeOption(button) {
+    const container = document.getElementById('options-container');
+    if (container.children.length > 1) {
+        button.parentElement.remove();
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    toggleOptions();
+});
+</script>
+{% endblock %}
