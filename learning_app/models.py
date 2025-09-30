@@ -168,6 +168,12 @@ class QuizQuestion(models.Model):
         ('llm_pdf', 'LLM from PDF'),
     ]
     
+    APPROVAL_STATUS = [
+        ('pending', 'Pending Review'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    ]
+    
     quiz = models.ForeignKey(LiveQuiz, on_delete=models.CASCADE, related_name='questions')
     question_text = models.TextField()
     question_type = models.CharField(max_length=15, choices=QUESTION_TYPES, default='mcq')
@@ -181,11 +187,25 @@ class QuizQuestion(models.Model):
     source_text = models.TextField(blank=True, help_text="Source text used for LLM generation")
     order = models.PositiveIntegerField(default=0)
     
+    # New approval field
+    approval_status = models.CharField(max_length=15, choices=APPROVAL_STATUS, default='approved')
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    
     class Meta:
         ordering = ['order']
     
     def __str__(self):
         return f"{self.quiz.title} - Q{self.order}"
+    
+    def save(self, *args, **kwargs):
+        # Auto-approve manual questions, set LLM questions to pending
+        if not self.pk:  # New question
+            if self.generation_method == 'manual':
+                self.approval_status = 'approved'
+            else:
+                self.approval_status = 'pending'
+        super().save(*args, **kwargs)
+
 
 
 class QuizParticipant(models.Model):

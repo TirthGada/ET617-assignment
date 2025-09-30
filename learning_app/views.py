@@ -523,19 +523,21 @@ def create_quiz(request):
 
 @teacher_required
 def edit_quiz(request, quiz_id):
-    """Edit quiz and manage questions"""
     teacher_id = request.session.get('teacher_id')
     teacher_profile = get_object_or_404(TeacherProfile, id=teacher_id)
     quiz = get_object_or_404(LiveQuiz, id=quiz_id, teacher=teacher_profile)
+    questions = quiz.questions.all()
     
-    questions = quiz.questions.all().order_by('order')
+    # Calculate pending questions count
+    pending_count = quiz.questions.filter(approval_status='pending').count()
     
     context = {
         'quiz': quiz,
-        'questions': questions
+        'questions': questions,
+        'pending_count': pending_count,  # Add this line
     }
-    
     return render(request, 'learning_app/edit_quiz.html', context)
+
 
 
 @teacher_required
@@ -1059,6 +1061,80 @@ def generate_word_cloud(common_mistakes):
         print(f"❌ Word cloud generation error: {str(e)}")
         return None
 
+@teacher_required
+@csrf_exempt
+def approve_question(request, quiz_id, question_id):
+    """Approve a question"""
+    if request.method == 'POST':
+        teacher_id = request.session.get('teacher_id')
+        teacher_profile = get_object_or_404(TeacherProfile, id=teacher_id)
+        quiz = get_object_or_404(LiveQuiz, id=quiz_id, teacher=teacher_profile)
+        question = get_object_or_404(QuizQuestion, id=question_id, quiz=quiz)
+        
+        question.approval_status = 'approved'
+        question.reviewed_at = timezone.now()
+        question.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Question approved successfully!'
+        })
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
+
+@teacher_required
+@csrf_exempt
+def reject_question(request, quiz_id, question_id):
+    """Reject and delete a question"""
+    if request.method == 'POST':
+        teacher_id = request.session.get('teacher_id')
+        teacher_profile = get_object_or_404(TeacherProfile, id=teacher_id)
+        quiz = get_object_or_404(LiveQuiz, id=quiz_id, teacher=teacher_profile)
+        question = get_object_or_404(QuizQuestion, id=question_id, quiz=quiz)
+        
+        # Delete the question
+        question.delete()
+        
+        # Reorder remaining questions
+        remaining_questions = quiz.questions.all().order_by('order')
+        for i, q in enumerate(remaining_questions, 1):
+            q.order = i
+            q.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Question rejected and deleted successfully!'
+        })
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
+
+@teacher_required
+@csrf_exempt
+def delete_question(request, quiz_id, question_id):
+    """Delete a question (for manual questions)"""
+    if request.method == 'POST':
+        teacher_id = request.session.get('teacher_id')
+        teacher_profile = get_object_or_404(TeacherProfile, id=teacher_id)
+        quiz = get_object_or_404(LiveQuiz, id=quiz_id, teacher=teacher_profile)
+        question = get_object_or_404(QuizQuestion, id=question_id, quiz=quiz)
+        
+        # Delete the question
+        question.delete()
+        
+        # Reorder remaining questions
+        remaining_questions = quiz.questions.all().order_by('order')
+        for i, q in enumerate(remaining_questions, 1):
+            q.order = i
+            q.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Question deleted successfully!'
+        })
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request method'})
 
 @teacher_required
 def quiz_mistake_analysis(request, quiz_id):

@@ -32,7 +32,13 @@ urlpatterns = [
     path('teacher/quiz/<int:quiz_id>/add-manual/', views.add_question_manual, name='add_question_manual'),
     path('teacher/quiz/<int:quiz_id>/generate-text/', views.generate_questions_from_text, name='generate_questions_from_text'),
     path('teacher/quiz/<int:quiz_id>/generate-pdf/', views.generate_questions_from_pdf, name='generate_questions_from_pdf'),
-    
+    # Add these to your urlpatterns
+    path('teacher/quiz/<int:quiz_id>/question/<int:question_id>/approve/', views.approve_question, name='approve_question'),
+    path('teacher/quiz/<int:quiz_id>/question/<int:question_id>/reject/', views.reject_question, name='reject_question'),
+    path('teacher/quiz/<int:quiz_id>/question/<int:question_id>/delete/', views.delete_question, name='delete_question'),
+
+
+        
     # Student routes
     path('quiz/join/', views.join_quiz, name='join_quiz'),
     path('quiz/<int:quiz_id>/take/', views.take_quiz, name='take_quiz'),

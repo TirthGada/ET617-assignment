@@ -176,23 +176,55 @@
         </div>
     </div>
 
-    <!-- Questions List -->
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
-                <h6 class="mb-0"><i class="fas fa-list me-2"></i>Questions ({{ quiz.questions.count }})</h6>
-            </div>
-            <div class="card-body">
-                <div id="questionsList">
-                    {% if questions %}
-                        {% for question in questions %}
-                        <div class="card mb-3 question-card">
-                            <div class="card-header d-flex justify-content-between align-items-center">
+<!-- Questions List -->
+<div class="col-md-8">
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="mb-0"><i class="fas fa-list me-2"></i>Questions ({{ quiz.questions.count }})</h6>
+            {% if pending_count > 0 %}
+                <span class="badge bg-warning">
+                    {{ pending_count }} Pending Review
+                </span>
+            {% endif %}
+        </div>
+        <div class="card-body">
+            <div id="questionsList">
+                {% if questions %}
+                    {% for question in questions %}
+                    <div class="card mb-3 question-card" id="question-{{ question.id }}">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <div>
                                 <h6 class="mb-0">Question {{ question.order }}</h6>
-                                <div class="badge bg-secondary">{{ question.get_generation_method_display }}</div>
+                                <small class="text-muted">{{ question.get_generation_method_display }}</small>
                             </div>
-                            <div class="card-body">
-                                <p class="fw-bold">{{ question.question_text }}</p>
+                            <div class="d-flex align-items-center gap-2">
+                                <!-- Approval Status Badge -->
+                                {% if question.approval_status == 'pending' %}
+                                    <span class="badge bg-warning">Pending Review</span>
+                                {% elif question.approval_status == 'approved' %}
+                                    <span class="badge bg-success">Approved</span>
+                                {% endif %}
+                                
+                                <!-- Action Buttons -->
+                                <div class="btn-group btn-group-sm">
+                                    {% if question.approval_status == 'pending' %}
+                                        <button class="btn btn-success btn-sm" onclick="approveQuestion({{ question.id }})" title="Approve">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                        <button class="btn btn-danger btn-sm" onclick="rejectQuestion({{ question.id }})" title="Reject & Delete">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    {% else %}
+                                        <button class="btn btn-danger btn-sm" onclick="deleteQuestion({{ question.id }})" title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <p class="fw-bold">{{ question.question_text }}</p>
+                            {% if question.question_type == 'mcq' %}
                                 <div class="row">
                                     <div class="col-md-6">
                                         <p class="mb-1">
@@ -215,26 +247,29 @@
                                         </p>
                                     </div>
                                 </div>
-                                {% if question.explanation %}
+                            {% else %}
+                                <p class="text-muted"><em>Subjective Question</em></p>
+                            {% endif %}
+                            {% if question.explanation %}
                                 <div class="mt-2">
                                     <small class="text-muted"><strong>Explanation:</strong> {{ question.explanation }}</small>
                                 </div>
-                                {% endif %}
-                            </div>
+                            {% endif %}
                         </div>
-                        {% endfor %}
-                    {% else %}
-                        <div class="text-center py-4">
-                            <i class="fas fa-question-circle fa-3x text-muted mb-3"></i>
-                            <h5 class="text-muted">No questions yet</h5>
-                            <p class="text-muted">Add your first question using the panel on the left!</p>
-                        </div>
-                    {% endif %}
-                </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-question-circle fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No questions yet</h5>
+                        <p class="text-muted">Add your first question using the panel on the left!</p>
+                    </div>
+                {% endif %}
             </div>
         </div>
     </div>
 </div>
+
 
 <!-- Loading Modal -->
 <div class="modal fade" id="loadingModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
@@ -251,7 +286,6 @@
     </div>
 </div>
 {% endblock %}
-
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -298,6 +332,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Toggle MCQ fields visibility
     const typeSelect = document.getElementById('questionTypeSelect');
     const mcqFields = document.querySelectorAll('.mcq-only');
+    
     function toggleFields() {
         const isMCQ = typeSelect.value === 'mcq';
         mcqFields.forEach(el => {
@@ -376,5 +411,87 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+// Question action functions
+function approveQuestion(questionId) {
+    if (confirm('Are you sure you want to approve this question?')) {
+        const url = `/teacher/quiz/{{ quiz.id }}/question/${questionId}/approve/`;
+        
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred');
+        });
+    }
+}
+
+function rejectQuestion(questionId) {
+    if (confirm('Are you sure you want to reject and delete this question? This action cannot be undone.')) {
+        const url = `/teacher/quiz/{{ quiz.id }}/question/${questionId}/reject/`;
+        
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred');
+        });
+    }
+}
+
+function deleteQuestion(questionId) {
+    if (confirm('Are you sure you want to delete this question? This action cannot be undone.')) {
+        const url = `/teacher/quiz/{{ quiz.id }}/question/${questionId}/delete/`;
+        
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred');
+        });
+    }
+}
 </script>
 {% endblock %}
