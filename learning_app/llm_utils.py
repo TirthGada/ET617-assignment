@@ -18,7 +18,6 @@ logger = logging.getLogger(__name__)
 HF_TOKEN = "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"
 
 # Groq API - Free tier available
-GROQ_API_KEY = "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"  
 # Multiple free API endpoints to try
 FREE_API_ENDPOINTS = [
     {
