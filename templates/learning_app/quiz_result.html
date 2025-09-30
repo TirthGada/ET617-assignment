@@ -1,0 +1,263 @@
+{% extends 'base.html' %}
+
+{% block title %}Quiz Results - {{ quiz.title }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <!-- Results Summary -->
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0">
+                    <i class="fas fa-chart-line me-2"></i>Quiz Complete!
+                </h4>
+            </div>
+            <div class="card-body text-center">
+                <div class="row">
+                    <div class="col-md-4">
+                        <h2 class="text-primary">{{ participant.score }}</h2>
+                        <p class="text-muted">Correct Answers</p>
+                    </div>
+                    <div class="col-md-4">
+                        <h2 class="text-info">{{ participant.total_questions }}</h2>
+                        <p class="text-muted">Total Questions</p>
+                    </div>
+                    <div class="col-md-4">
+                        <h2 class="text-success">{{ participant.score|floatformat:0 }}%</h2>
+                        <p class="text-muted">Score</p>
+                    </div>
+                </div>
+                
+                <div class="progress mt-3" style="height: 20px;">
+                    <div class="progress-bar bg-success" style="width: {% widthratio participant.score participant.total_questions 100 %}%">
+                        {% widthratio participant.score participant.total_questions 100 %}%
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Answer Review -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-list-check me-2"></i>Answer Review</h5>
+            </div>
+            <div class="card-body">
+                {% for answer in answers %}
+                <div class="card mb-3 {% if answer.is_correct %}border-success{% else %}border-danger{% endif %}">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span>Question {{ answer.question.order }}</span>
+                        {% if answer.is_correct %}
+                            <span class="badge bg-success">Correct</span>
+                        {% else %}
+                            <span class="badge bg-danger">Incorrect</span>
+                        {% endif %}
+                    </div>
+                    <div class="card-body">
+                        <p class="fw-bold">{{ answer.question.question_text }}</p>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="mb-1">
+                                    <span class="badge {% if answer.selected_answer == 'A' %}{% if answer.is_correct %}bg-success{% else %}bg-danger{% endif %}{% elif answer.question.correct_answer == 'A' %}bg-success{% else %}bg-light text-dark{% endif %} me-2">A</span>
+                                    {{ answer.question.option_a }}
+                                    {% if answer.question.correct_answer == 'A' %}<i class="fas fa-check text-success ms-1"></i>{% endif %}
+                                    {% if answer.selected_answer == 'A' and not answer.is_correct %}<i class="fas fa-times text-danger ms-1"></i>{% endif %}
+                                </p>
+                                <p class="mb-1">
+                                    <span class="badge {% if answer.selected_answer == 'B' %}{% if answer.is_correct %}bg-success{% else %}bg-danger{% endif %}{% elif answer.question.correct_answer == 'B' %}bg-success{% else %}bg-light text-dark{% endif %} me-2">B</span>
+                                    {{ answer.question.option_b }}
+                                    {% if answer.question.correct_answer == 'B' %}<i class="fas fa-check text-success ms-1"></i>{% endif %}
+                                    {% if answer.selected_answer == 'B' and not answer.is_correct %}<i class="fas fa-times text-danger ms-1"></i>{% endif %}
+                                </p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="mb-1">
+                                    <span class="badge {% if answer.selected_answer == 'C' %}{% if answer.is_correct %}bg-success{% else %}bg-danger{% endif %}{% elif answer.question.correct_answer == 'C' %}bg-success{% else %}bg-light text-dark{% endif %} me-2">C</span>
+                                    {{ answer.question.option_c }}
+                                    {% if answer.question.correct_answer == 'C' %}<i class="fas fa-check text-success ms-1"></i>{% endif %}
+                                    {% if answer.selected_answer == 'C' and not answer.is_correct %}<i class="fas fa-times text-danger ms-1"></i>{% endif %}
+                                </p>
+                                <p class="mb-1">
+                                    <span class="badge {% if answer.selected_answer == 'D' %}{% if answer.is_correct %}bg-success{% else %}bg-danger{% endif %}{% elif answer.question.correct_answer == 'D' %}bg-success{% else %}bg-light text-dark{% endif %} me-2">D</span>
+                                    {{ answer.question.option_d }}
+                                    {% if answer.question.correct_answer == 'D' %}<i class="fas fa-check text-success ms-1"></i>{% endif %}
+                                    {% if answer.selected_answer == 'D' and not answer.is_correct %}<i class="fas fa-times text-danger ms-1"></i>{% endif %}
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <!-- Always show explanation -->
+                        <div class="mt-3 p-3 rounded {% if answer.is_correct %}bg-success-subtle{% else %}bg-danger-subtle{% endif %}">
+                            {% if answer.is_correct %}
+                                <div class="d-flex align-items-start">
+                                    <i class="fas fa-check-circle text-success me-2 mt-1"></i>
+                                    <div>
+                                        <strong class="text-success">Correct! Well done!</strong>
+                                        <p class="mb-1 mt-2">
+                                            {% if answer.question.explanation %}
+                                                {{ answer.question.explanation }}
+                                            {% else %}
+                                                You selected the right answer: <strong>{{ answer.question.correct_answer }}) 
+                                                {% if answer.question.correct_answer == 'A' %}{{ answer.question.option_a }}
+                                                {% elif answer.question.correct_answer == 'B' %}{{ answer.question.option_b }}
+                                                {% elif answer.question.correct_answer == 'C' %}{{ answer.question.option_c }}
+                                                {% elif answer.question.correct_answer == 'D' %}{{ answer.question.option_d }}
+                                                {% endif %}</strong>
+                                            {% endif %}
+                                        </p>
+                                        <small class="text-success">💡 <strong>Tip:</strong> This understanding will help you with more advanced concepts in {{ answer.question.quiz.title }}.</small>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <div class="d-flex align-items-start">
+                                    <i class="fas fa-times-circle text-danger me-2 mt-1"></i>
+                                    <div>
+                                        <strong class="text-danger">Incorrect - Let's learn from this!</strong>
+                                        <p class="mb-1 mt-2">
+                                            <strong>Your answer:</strong> {{ answer.selected_answer }}) 
+                                            {% if answer.selected_answer == 'A' %}{{ answer.question.option_a }}
+                                            {% elif answer.selected_answer == 'B' %}{{ answer.question.option_b }}
+                                            {% elif answer.selected_answer == 'C' %}{{ answer.question.option_c }}
+                                            {% elif answer.selected_answer == 'D' %}{{ answer.question.option_d }}
+                                            {% endif %}
+                                        </p>
+                                        <p class="mb-1">
+                                            <strong class="text-success">Correct answer:</strong> {{ answer.question.correct_answer }}) 
+                                            {% if answer.question.correct_answer == 'A' %}{{ answer.question.option_a }}
+                                            {% elif answer.question.correct_answer == 'B' %}{{ answer.question.option_b }}
+                                            {% elif answer.question.correct_answer == 'C' %}{{ answer.question.option_c }}
+                                            {% elif answer.question.correct_answer == 'D' %}{{ answer.question.option_d }}
+                                            {% endif %}
+                                        </p>
+                                        {% if answer.question.explanation %}
+                                            <p class="mb-1"><strong>Why:</strong> {{ answer.question.explanation }}</p>
+                                        {% else %}
+                                            <p class="mb-1"><strong>Why:</strong> This is the correct answer because it accurately represents the key concept in {{ answer.question.quiz.title }}.</p>
+                                        {% endif %}
+                                        <small class="text-warning">📚 <strong>Study tip:</strong> Review this concept and try similar practice questions to strengthen your understanding.</small>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Practice Questions -->
+        {% if bloom_questions %}
+        <div class="card mb-4">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0"><i class="fas fa-brain me-2"></i>Practice Questions for You</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-3">Based on your performance, here are some practice questions to help strengthen your understanding:</p>
+                
+                {% for question in bloom_questions %}
+                <div class="card mb-3 border-warning">
+                    <div class="card-header bg-light">
+                        <small class="text-muted">{{ question.level }} Level - {{ question.topic }}</small>
+                    </div>
+                    <div class="card-body">
+                        <p class="fw-bold">{{ question.question_text }}</p>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="mb-1"><span class="badge bg-light text-dark me-2">A</span>{{ question.option_a }}</p>
+                                <p class="mb-1"><span class="badge bg-light text-dark me-2">B</span>{{ question.option_b }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="mb-1"><span class="badge bg-light text-dark me-2">C</span>{{ question.option_c }}</p>
+                                <p class="mb-1"><span class="badge bg-light text-dark me-2">D</span>{{ question.option_d }}</p>
+                            </div>
+                        </div>
+                        <details class="mt-2">
+                            <summary class="btn btn-sm btn-outline-info">Show Answer</summary>
+                            <div class="mt-2 p-2 bg-info bg-opacity-10 rounded">
+                                <strong>Correct Answer:</strong> {{ question.correct_answer }}
+                            </div>
+                        </details>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <div class="col-md-4">
+        <!-- Personal Analysis -->
+        {% if analysis %}
+        <div class="card mb-4 sticky-top" style="top: 20px;">
+            <div class="card-header bg-info text-white">
+                <h6 class="mb-0"><i class="fas fa-user-chart me-2"></i>Personal Analysis</h6>
+            </div>
+            <div class="card-body">
+                {% if analysis.strong_topics %}
+                <div class="mb-3">
+                    <h6 class="text-success"><i class="fas fa-check-circle me-1"></i>Strong Areas</h6>
+                    <ul class="list-unstyled">
+                        {% for topic in analysis.strong_topics %}
+                        <li><span class="badge bg-success-subtle text-success">{{ topic }}</span></li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+                
+                {% if analysis.weak_topics %}
+                <div class="mb-3">
+                    <h6 class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Areas for Improvement</h6>
+                    <ul class="list-unstyled">
+                        {% for topic in analysis.weak_topics %}
+                        <li><span class="badge bg-warning-subtle text-warning">{{ topic }}</span></li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+                
+                {% if analysis.recommendations %}
+                <div class="mb-3">
+                    <h6 class="text-primary"><i class="fas fa-lightbulb me-1"></i>Recommendations</h6>
+                    <p class="small">{{ analysis.recommendations }}</p>
+                </div>
+                {% endif %}
+                
+                {% if analysis.reading_material %}
+                <div>
+                    <h6 class="text-info"><i class="fas fa-book me-1"></i>Study Materials</h6>
+                    <p class="small">{{ analysis.reading_material }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Actions -->
+        <div class="card">
+            <div class="card-body text-center">
+                <h6 class="card-title">What's Next?</h6>
+                <div class="d-grid gap-2">
+                    {% if participant.score < participant.total_questions %}
+                    <a href="{% url 'student_help_content' quiz.id %}" class="btn btn-success">
+                        <i class="fas fa-graduation-cap me-1"></i>Get AI Study Help
+                    </a>
+                    {% endif %}
+                    <a href="{% url 'join_quiz' %}" class="btn btn-primary">
+                        <i class="fas fa-play-circle me-1"></i>Take Another Quiz
+                    </a>
+                    <a href="{% url 'home' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-home me-1"></i>Back to Home
+                    </a>
+                </div>
+                
+                <hr class="my-3">
+                
+                <small class="text-muted">
+                    <i class="fas fa-clock me-1"></i>
+                    Completed: {{ participant.submitted_at|date:"M d, Y H:i" }}
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

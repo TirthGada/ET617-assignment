@@ -1,0 +1,284 @@
+{% extends 'base.html' %}
+
+{% block title %}Quiz Results - {{ quiz.title }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-chart-bar me-2"></i>{{ quiz.title }} - Results</h2>
+    <div>
+        <a href="{% url 'teacher_dashboard' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<div class="row mb-4">
+    {% if analytics %}
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h5 class="card-title">Participants</h5>
+                        <h3 class="mb-0">{{ analytics.total_participants }}</h3>
+                    </div>
+                    <div class="ms-3">
+                        <i class="fas fa-users fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h5 class="card-title">Average Score</h5>
+                        <h3 class="mb-0">{{ analytics.average_score|floatformat:1 }}%</h3>
+                    </div>
+                    <div class="ms-3">
+                        <i class="fas fa-trophy fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h5 class="card-title">Completion Rate</h5>
+                        <h3 class="mb-0">{{ analytics.completion_rate|floatformat:1 }}%</h3>
+                    </div>
+                    <div class="ms-3">
+                        <i class="fas fa-check-circle fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-dark">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h5 class="card-title">Difficult Questions</h5>
+                        <h3 class="mb-0">{{ analytics.difficult_questions|length }}</h3>
+                    </div>
+                    <div class="ms-3">
+                        <i class="fas fa-exclamation-triangle fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <!-- Participant Results -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-list me-2"></i>Participant Results</h5>
+            </div>
+            <div class="card-body">
+                {% if participants %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Rank</th>
+                                    <th>Student Name</th>
+                                    <th>Email</th>
+                                    <th>Score</th>
+                                    <th>Percentage</th>
+                                    <th>Completed</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for participant in participants %}
+                                <tr>
+                                    <td>
+                                        {% if forloop.counter == 1 %}
+                                            <i class="fas fa-trophy text-warning"></i> {{ forloop.counter }}
+                                        {% elif forloop.counter == 2 %}
+                                            <i class="fas fa-medal text-secondary"></i> {{ forloop.counter }}
+                                        {% elif forloop.counter == 3 %}
+                                            <i class="fas fa-award text-warning"></i> {{ forloop.counter }}
+                                        {% else %}
+                                            {{ forloop.counter }}
+                                        {% endif %}
+                                    </td>
+                                    <td><strong>{{ participant.student_name }}</strong></td>
+                                    <td>{{ participant.student_email }}</td>
+                                    <td>{{ participant.score }}/{{ participant.total_questions }}</td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="progress me-2" style="width: 100px; height: 20px;">
+                                                <div class="progress-bar 
+                                                    {% if participant.score >= 8 %}bg-success
+                                                    {% elif participant.score >= 6 %}bg-warning
+                                                    {% else %}bg-danger{% endif %}"
+                                                    style="width: {% widthratio participant.score participant.total_questions 100 %}%">
+                                                </div>
+                                            </div>
+                                            <span>{% widthratio participant.score participant.total_questions 100 %}%</span>
+                                        </div>
+                                    </td>
+                                    <td>{{ participant.submitted_at|date:"M d, H:i" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No participants completed the quiz</h5>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Difficult Questions -->
+        {% if analytics and analytics.difficult_questions %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Questions Students Found Difficult</h5>
+            </div>
+            <div class="card-body">
+                {% for question in analytics.difficult_questions %}
+                <div class="card mb-3 border-warning">
+                    <div class="card-header bg-warning bg-opacity-10 d-flex justify-content-between">
+                        <span><strong>Question {{ forloop.counter }}</strong></span>
+                        <span class="badge bg-warning text-dark">{{ question.success_rate|floatformat:1 }}% correct</span>
+                    </div>
+                    <div class="card-body">
+                        <p>{{ question.question_text }}</p>
+                        <small class="text-muted">This question had a low success rate. Consider reviewing this topic with students.</small>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <div class="col-md-4">
+        <!-- Quiz Summary -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Quiz Summary</h6>
+            </div>
+            <div class="card-body">
+                <p><strong>Status:</strong> 
+                    <span class="badge bg-dark">{{ quiz.get_status_display }}</span>
+                </p>
+                <p><strong>Started:</strong> {{ quiz.started_at|date:"M d, Y H:i" }}</p>
+                <p><strong>Ended:</strong> {{ quiz.ended_at|date:"M d, Y H:i" }}</p>
+                <p><strong>Duration:</strong> 
+                    {% if quiz.started_at and quiz.ended_at %}
+                        {{ quiz.ended_at|timeuntil:quiz.started_at }}
+                    {% else %}
+                        {{ quiz.time_limit }} minutes (planned)
+                    {% endif %}
+                </p>
+                <p><strong>Total Questions:</strong> {{ quiz.questions.count }}</p>
+            </div>
+        </div>
+
+        <!-- Word Cloud -->
+        {% if word_cloud_image %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-cloud me-2"></i>Common Wrong Answers</h6>
+            </div>
+            <div class="card-body text-center">
+                <img src="{{ word_cloud_image }}" class="img-fluid rounded" alt="Word Cloud">
+                <small class="text-muted d-block mt-2">
+                    Larger words represent more commonly chosen incorrect answers
+                </small>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Actions -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-cogs me-2"></i>Actions</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'quiz_mistake_analysis' quiz.id %}" class="btn btn-primary">
+                        <i class="fas fa-brain me-1"></i>AI Mistake Analysis
+                    </a>
+                    <button class="btn btn-info" onclick="exportResults()">
+                        <i class="fas fa-download me-1"></i>Export Results
+                    </button>
+                    <a href="{% url 'edit_quiz' quiz.id %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-edit me-1"></i>Edit Quiz
+                    </a>
+                    <button class="btn btn-success" onclick="createSimilarQuiz()">
+                        <i class="fas fa-copy me-1"></i>Create Similar Quiz
+                    </button>
+                </div>
+                
+                <hr>
+                
+                <h6 class="small text-muted mb-2">Performance Distribution</h6>
+                <div class="mb-2">
+                    <div class="d-flex justify-content-between">
+                        <small>Excellent (80%+)</small>
+                        <small>
+                            {% with total=participants.count %}
+                                {% if total > 0 %}
+                                    {{ total|floatformat:0 }}
+                                {% else %}
+                                    0
+                                {% endif %}
+                            {% endwith %}
+                        </small>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <small>Good (60-79%)</small>
+                        <small>{{ participants.count }}</small>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <small>Needs Improvement (<60%)</small>
+                        <small>0</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function exportResults() {
+    // Simple CSV export
+    let csv = 'Name,Email,Score,Total,Percentage,Completed\n';
+    {% for participant in participants %}
+    csv += '{{ participant.student_name }},{{ participant.student_email }},{{ participant.score }},{{ participant.total_questions }},{% widthratio participant.score participant.total_questions 100 %},{{ participant.submitted_at|date:"Y-m-d H:i" }}\n';
+    {% endfor %}
+    
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = '{{ quiz.title|slugify }}_results.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+}
+
+function createSimilarQuiz() {
+    if (confirm('Create a new quiz similar to this one?')) {
+        window.location.href = '{% url "create_quiz" %}';
+    }
+}
+</script>
+{% endblock %}

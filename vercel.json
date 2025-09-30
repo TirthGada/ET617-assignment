@@ -1,0 +1,28 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "vercel_app.py",
+      "use": "@vercel/python",
+      "config": {
+        "maxLambdaSize": "50mb"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/static/(.*)",
+      "dest": "/static/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/vercel_app.py"
+    }
+  ],
+  "env": {
+    "DEBUG": "False",
+    "PYTHONPATH": ".",
+    "DJANGO_SETTINGS_MODULE": "learning_platform.settings",
+    "SECRET_KEY": "django-insecure-vercel-demo-key-change-in-production"
+  }
+} 

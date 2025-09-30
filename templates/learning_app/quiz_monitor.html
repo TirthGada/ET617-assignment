@@ -1,0 +1,235 @@
+{% extends 'base.html' %}
+
+{% block title %}Monitor Quiz - {{ quiz.title }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-eye me-2"></i>{{ quiz.title }} - Live Monitor</h2>
+    <div>
+        <a href="{% url 'end_quiz' quiz.id %}" class="btn btn-danger" onclick="return confirm('Are you sure you want to end this quiz?')">
+            <i class="fas fa-stop me-1"></i>End Quiz
+        </a>
+        <a href="{% url 'teacher_dashboard' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h5 class="card-title">Quiz Code</h5>
+                        <h3 class="mb-0">{{ quiz.quiz_code }}</h3>
+                    </div>
+                    <div class="ms-3">
+                        <i class="fas fa-qrcode fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h5 class="card-title">Participants</h5>
+                        <h3 class="mb-0">{{ participants.count }}</h3>
+                    </div>
+                    <div class="ms-3">
+                        <i class="fas fa-users fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h5 class="card-title">Questions</h5>
+                        <h3 class="mb-0">{{ total_questions }}</h3>
+                    </div>
+                    <div class="ms-3">
+                        <i class="fas fa-question-circle fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-dark">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h5 class="card-title">Submitted</h5>
+                        <h3 class="mb-0">{{ participants|dictsort:"submitted_at"|length }}</h3>
+                    </div>
+                    <div class="ms-3">
+                        <i class="fas fa-check-circle fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-users me-2"></i>Live Participants</h5>
+                <button class="btn btn-sm btn-outline-primary" onclick="refreshParticipants()">
+                    <i class="fas fa-sync-alt me-1"></i>Refresh
+                </button>
+            </div>
+            <div class="card-body">
+                <div id="participantsList">
+                    {% if participants %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Student Name</th>
+                                        <th>Email</th>
+                                        <th>Joined</th>
+                                        <th>Status</th>
+                                        <th>Score</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for participant in participants %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ participant.student_name }}</strong>
+                                        </td>
+                                        <td>{{ participant.student_email }}</td>
+                                        <td>{{ participant.joined_at|date:"H:i" }}</td>
+                                        <td>
+                                            {% if participant.submitted_at %}
+                                                <span class="badge bg-success">Completed</span>
+                                                <small class="text-muted d-block">{{ participant.submitted_at|date:"H:i" }}</small>
+                                            {% else %}
+                                                <span class="badge bg-primary">In Progress</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if participant.submitted_at %}
+                                                <strong>{{ participant.score }}/{{ participant.total_questions }}</strong>
+                                                <small class="text-muted d-block">
+                                                    ({% widthratio participant.score participant.total_questions 100 %}%)
+                                                </small>
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No participants yet</h5>
+                            <p class="text-muted">Share the quiz code <strong>{{ quiz.quiz_code }}</strong> with your students</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Quiz Information</h6>
+            </div>
+            <div class="card-body">
+                <p><strong>Status:</strong> 
+                    <span class="badge bg-success">{{ quiz.get_status_display }}</span>
+                </p>
+                <p><strong>Started:</strong> {{ quiz.started_at|date:"M d, Y H:i" }}</p>
+                <p><strong>Time Limit:</strong> {{ quiz.time_limit }} minutes</p>
+                {% if quiz.description %}
+                <p><strong>Description:</strong><br>{{ quiz.description }}</p>
+                {% endif %}
+                
+                <hr>
+                
+                <h6><i class="fas fa-share-alt me-2"></i>Share Quiz Code</h6>
+                <div class="text-center p-3 bg-light rounded">
+                    <h2 class="text-primary mb-2">{{ quiz.quiz_code }}</h2>
+                    <button class="btn btn-sm btn-outline-primary" onclick="copyQuizCode()">
+                        <i class="fas fa-copy me-1"></i>Copy Code
+                    </button>
+                </div>
+                
+                <hr>
+                
+                <h6><i class="fas fa-chart-bar me-2"></i>Quick Stats</h6>
+                <div class="row text-center">
+                    <div class="col-6">
+                        <div class="border rounded p-2">
+                            <h5 class="mb-0 text-primary">{{ participants.count }}</h5>
+                            <small class="text-muted">Joined</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="border rounded p-2">
+                            <h5 class="mb-0 text-success">
+                                {% with completed=participants|dictsort:"submitted_at"|length %}{{ completed }}{% endwith %}
+                            </h5>
+                            <small class="text-muted">Completed</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-cogs me-2"></i>Actions</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <button class="btn btn-info" onclick="refreshParticipants()">
+                        <i class="fas fa-sync-alt me-1"></i>Refresh Data
+                    </button>
+                    <a href="{% url 'edit_quiz' quiz.id %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-edit me-1"></i>Edit Quiz
+                    </a>
+                    <a href="{% url 'end_quiz' quiz.id %}" class="btn btn-danger" 
+                       onclick="return confirm('Are you sure you want to end this quiz? This action cannot be undone.')">
+                        <i class="fas fa-stop me-1"></i>End Quiz
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function copyQuizCode() {
+    const code = '{{ quiz.quiz_code }}';
+    navigator.clipboard.writeText(code).then(function() {
+        alert('Quiz code copied to clipboard!');
+    });
+}
+
+function refreshParticipants() {
+    location.reload();
+}
+
+// Auto-refresh every 30 seconds
+setInterval(function() {
+    refreshParticipants();
+}, 30000);
+</script>
+{% endblock %}

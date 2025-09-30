@@ -1,0 +1,364 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ content.title }} - Learning Platform{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'course_detail' content.course.id %}">{{ content.course.title }}</a></li>
+                <li class="breadcrumb-item active">{{ content.title }}</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-body">
+                <h1 class="card-title">
+                    {% if content.content_type == 'video' %}
+                        <i class="fas fa-play-circle text-primary me-2"></i>
+                    {% elif content.content_type == 'text' %}
+                        <i class="fas fa-file-text text-info me-2"></i>
+                    {% elif content.content_type == 'quiz' %}
+                        <i class="fas fa-question-circle text-warning me-2"></i>
+                    {% endif %}
+                    {{ content.title }}
+                </h1>
+                
+                <div class="mb-3">
+                    <span class="badge bg-secondary">{{ content.content_type|title }}</span>
+                    {% if user_progress.completed %}
+                        <span class="badge bg-success">Completed</span>
+                    {% else %}
+                        <span class="badge bg-warning">In Progress</span>
+                    {% endif %}
+                </div>
+
+                <!-- Content Display -->
+                {% if content.content_type == 'video' %}
+                    {% if content.video_url %}
+                        <div class="ratio ratio-16x9 mb-3">
+                            <video id="contentVideo" controls class="rounded">
+                                <source src="{{ content.video_url }}" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                        <p class="text-muted">
+                            <i class="fas fa-clock me-1"></i>
+                            Duration: {{ content.video_duration }} seconds
+                        </p>
+                    {% else %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Video content is not available at the moment.
+                        </div>
+                    {% endif %}
+                    
+                {% elif content.content_type == 'text' %}
+                    {% if content.text_content %}
+                        <div class="content-text">
+                            {{ content.text_content|linebreaks }}
+                        </div>
+                        
+                        <!-- Mark as read button -->
+                        {% if not user_progress.completed %}
+                            <div class="mt-4">
+                                <button class="btn btn-success" onclick="markAsRead()" id="markReadBtn">
+                                    <i class="fas fa-check me-1"></i>Mark as Read
+                                </button>
+                            </div>
+                        {% else %}
+                            <div class="mt-4">
+                                <div class="alert alert-success">
+                                    <i class="fas fa-check-circle me-2"></i>
+                                    <strong>Completed!</strong> You marked this content as read on {{ user_progress.completed_at|date:"M d, Y g:i A" }}
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Text content is not available.
+                        </div>
+                    {% endif %}
+                    
+                {% elif content.content_type == 'quiz' and quiz %}
+                    <div id="quizContainer">
+                        <div class="card border-primary">
+                            <div class="card-body">
+                                <h5 class="card-title">
+                                    <i class="fas fa-question-circle text-primary me-2"></i>
+                                    Quiz Question
+                                </h5>
+                                <p class="lead">{{ quiz.question }}</p>
+                                
+                                <form id="quizForm">
+                                    {% csrf_token %}
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="radio" name="answer" id="optionA" value="A">
+                                        <label class="form-check-label" for="optionA">
+                                            A) {{ quiz.option_a }}
+                                        </label>
+                                    </div>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="radio" name="answer" id="optionB" value="B">
+                                        <label class="form-check-label" for="optionB">
+                                            B) {{ quiz.option_b }}
+                                        </label>
+                                    </div>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="radio" name="answer" id="optionC" value="C">
+                                        <label class="form-check-label" for="optionC">
+                                            C) {{ quiz.option_c }}
+                                        </label>
+                                    </div>
+                                    <div class="form-check mb-3">
+                                        <input class="form-check-input" type="radio" name="answer" id="optionD" value="D">
+                                        <label class="form-check-label" for="optionD">
+                                            D) {{ quiz.option_d }}
+                                        </label>
+                                    </div>
+                                    
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-paper-plane me-1"></i>Submit Answer
+                                    </button>
+                                </form>
+                                
+                                <div id="quizResult" class="mt-3" style="display: none;"></div>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <!-- Progress Sidebar -->
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-chart-line text-primary me-2"></i>
+                    Your Progress
+                </h5>
+                
+                {% if user_progress.completed %}
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <strong>Completed!</strong><br>
+                        {{ user_progress.completed_at|date:"M d, Y g:i A" }}
+                    </div>
+                    
+                    {% if user_progress.quiz_score is not None %}
+                        <p class="mb-1"><strong>Quiz Score:</strong></p>
+                        <div class="progress mb-3">
+                            <div class="progress-bar bg-success" style="width: {{ user_progress.quiz_score }}00%">
+                                {{ user_progress.quiz_score }}/1
+                            </div>
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-clock me-2"></i>
+                        In Progress
+                    </div>
+                {% endif %}
+                
+                <!-- Video Progress (if video content) -->
+                {% if content.content_type == 'video' and content.video_duration %}
+                    <p class="mb-1"><strong>Video Progress:</strong></p>
+                    <div class="progress mb-3">
+                        <div id="videoProgress" class="progress-bar" style="width: 0%">
+                            0%
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Feedback and Doubt -->
+        <div class="card mt-3">
+            <div class="card-body">
+                {% include "learning_app/feedback_form.html" %}
+                {% include "learning_app/doubt_modal.html" %}
+            </div>
+        </div>
+        <!-- Navigation -->
+        <div class="card mt-3">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-navigation text-primary me-2"></i>
+                    Navigation
+                </h5>
+                <div class="d-grid gap-2">
+                    <a href="{% url 'course_detail' content.course.id %}" class="btn btn-outline-primary">
+                        <i class="fas fa-arrow-left me-1"></i>Back to Course
+                    </a>
+                    <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const contentId = {{ content.id }};
+const contentType = '{{ content.content_type }}';
+
+// Video tracking
+if (contentType === 'video') {
+    const video = document.getElementById('contentVideo');
+    if (video) {
+        let videoDuration = {{ content.video_duration }};
+        
+        video.addEventListener('play', function() {
+            trackVideoEvent('play', video.currentTime);
+        });
+        
+        video.addEventListener('pause', function() {
+            trackVideoEvent('pause', video.currentTime);
+        });
+        
+        video.addEventListener('timeupdate', function() {
+            const progress = (video.currentTime / videoDuration) * 100;
+            document.getElementById('videoProgress').style.width = progress + '%';
+            document.getElementById('videoProgress').textContent = Math.round(progress) + '%';
+            
+            // Mark as complete when 90% watched
+            if (progress >= 90) {
+                trackVideoEvent('complete', video.currentTime);
+                video.removeEventListener('timeupdate', arguments.callee);
+            }
+        });
+    }
+}
+
+// Quiz handling
+if (contentType === 'quiz') {
+    document.getElementById('quizForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const selectedAnswer = document.querySelector('input[name="answer"]:checked');
+        if (!selectedAnswer) {
+            alert('Please select an answer.');
+            return;
+        }
+        
+        fetch(`/submit-quiz/${contentId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({
+                answer: selectedAnswer.value
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showQuizResult(data);
+            } else {
+                alert('Error submitting quiz: ' + data.error);
+            }
+        });
+    });
+}
+
+function trackVideoEvent(eventType, currentTime) {
+    fetch('/track-video/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            content_id: contentId,
+            event_type: eventType,
+            current_time: currentTime
+        })
+    });
+}
+
+function showQuizResult(data) {
+    const resultDiv = document.getElementById('quizResult');
+    let resultHTML = '';
+    
+    if (data.correct) {
+        resultHTML = `
+            <div class="alert alert-success">
+                <i class="fas fa-check-circle me-2"></i>
+                <strong>Correct!</strong> Well done!
+            </div>
+        `;
+    } else {
+        resultHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-times-circle me-2"></i>
+                <strong>Incorrect.</strong> The correct answer is ${data.correct_answer}.
+            </div>
+        `;
+    }
+    
+    resultDiv.innerHTML = resultHTML;
+    resultDiv.style.display = 'block';
+    
+    // Disable form
+    document.getElementById('quizForm').style.display = 'none';
+    
+    // Reload page after 3 seconds to show updated progress
+    setTimeout(() => {
+        location.reload();
+    }, 3000);
+}
+
+function markAsRead() {
+    const btn = document.getElementById('markReadBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Marking as Read...';
+    
+    fetch(`/mark-read/${contentId}/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show success message and reload page
+            btn.innerHTML = '<i class="fas fa-check me-1"></i>Marked as Read!';
+            btn.classList.remove('btn-success');
+            btn.classList.add('btn-outline-success');
+            
+            setTimeout(() => {
+                location.reload();
+            }, 1500);
+        } else {
+            // Reset button on error
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-check me-1"></i>Mark as Read';
+            alert('Error marking content as read: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        // Reset button on error
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-check me-1"></i>Mark as Read';
+        console.error('Error:', error);
+        alert('Error marking content as read');
+    });
+}
+</script>
+{% endblock %} 
