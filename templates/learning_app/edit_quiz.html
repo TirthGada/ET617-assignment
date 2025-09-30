@@ -59,26 +59,33 @@
                             <div class="accordion-body">
                                 <form id="manualQuestionForm">
                                     <div class="mb-2">
+                                        <label class="form-label">Question Type</label>
+                                        <select class="form-select form-select-sm" name="question_type" id="questionTypeSelect">
+                                            <option value="mcq" selected>Multiple Choice</option>
+                                            <option value="subjective">Subjective (text answer)</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-2">
                                         <label class="form-label">Question</label>
                                         <textarea class="form-control form-control-sm" name="question_text" rows="2" required></textarea>
                                     </div>
-                                    <div class="mb-2">
+                                    <div class="mb-2 mcq-only">
                                         <label class="form-label">Option A</label>
                                         <input type="text" class="form-control form-control-sm" name="option_a" required>
                                     </div>
-                                    <div class="mb-2">
+                                    <div class="mb-2 mcq-only">
                                         <label class="form-label">Option B</label>
                                         <input type="text" class="form-control form-control-sm" name="option_b" required>
                                     </div>
-                                    <div class="mb-2">
+                                    <div class="mb-2 mcq-only">
                                         <label class="form-label">Option C</label>
                                         <input type="text" class="form-control form-control-sm" name="option_c" required>
                                     </div>
-                                    <div class="mb-2">
+                                    <div class="mb-2 mcq-only">
                                         <label class="form-label">Option D</label>
                                         <input type="text" class="form-control form-control-sm" name="option_d" required>
                                     </div>
-                                    <div class="mb-2">
+                                    <div class="mb-2 mcq-only">
                                         <label class="form-label">Correct Answer</label>
                                         <select class="form-select form-select-sm" name="correct_answer" required>
                                             <option value="A">A</option>
@@ -257,6 +264,15 @@ document.addEventListener('DOMContentLoaded', function() {
         const formData = new FormData(this);
         const data = Object.fromEntries(formData.entries());
         
+        // If subjective, strip MCQ fields
+        if (data.question_type === 'subjective') {
+            delete data.option_a;
+            delete data.option_b;
+            delete data.option_c;
+            delete data.option_d;
+            delete data.correct_answer;
+        }
+
         fetch('{% url "add_question_manual" quiz.id %}', {
             method: 'POST',
             headers: {
@@ -278,6 +294,23 @@ document.addEventListener('DOMContentLoaded', function() {
             alert('An error occurred');
         });
     });
+
+    // Toggle MCQ fields visibility
+    const typeSelect = document.getElementById('questionTypeSelect');
+    const mcqFields = document.querySelectorAll('.mcq-only');
+    function toggleFields() {
+        const isMCQ = typeSelect.value === 'mcq';
+        mcqFields.forEach(el => {
+            el.style.display = isMCQ ? '' : 'none';
+            el.querySelectorAll('input,select,textarea').forEach(inp => {
+                if (inp.name !== 'question_text') {
+                    inp.required = isMCQ;
+                }
+            });
+        });
+    }
+    typeSelect.addEventListener('change', toggleFields);
+    toggleFields();
     
     // AI Text form
     document.getElementById('aiTextForm').addEventListener('submit', function(e) {

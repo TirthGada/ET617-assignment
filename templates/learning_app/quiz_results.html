@@ -143,28 +143,69 @@
             </div>
         </div>
 
-        <!-- Difficult Questions -->
-        {% if analytics and analytics.difficult_questions %}
+        <!-- Question-wise Response Stats -->
         <div class="card mb-4">
             <div class="card-header">
-                <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Questions Students Found Difficult</h5>
+                <h5 class="mb-0"><i class="fas fa-poll me-2"></i>Question-wise Responses</h5>
             </div>
             <div class="card-body">
-                {% for question in analytics.difficult_questions %}
-                <div class="card mb-3 border-warning">
-                    <div class="card-header bg-warning bg-opacity-10 d-flex justify-content-between">
-                        <span><strong>Question {{ forloop.counter }}</strong></span>
-                        <span class="badge bg-warning text-dark">{{ question.success_rate|floatformat:1 }}% correct</span>
-                    </div>
-                    <div class="card-body">
-                        <p>{{ question.question_text }}</p>
-                        <small class="text-muted">This question had a low success rate. Consider reviewing this topic with students.</small>
-                    </div>
-                </div>
-                {% endfor %}
+                {% if question_stats %}
+                    {% for qs in question_stats %}
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="mb-1">Q{{ qs.question.order }}. {{ qs.question.question_text }}</h6>
+                                {% if qs.type == 'mcq' and qs.question.correct_answer %}
+                                    <span class="badge bg-success">Correct: {{ qs.question.correct_answer }}</span>
+                                {% endif %}
+                            </div>
+                            
+                            {% if qs.type == 'mcq' %}
+                            <div class="mt-2">
+                                <div class="small text-muted mb-1">Total responses: {{ qs.total }}</div>
+                                <div class="row g-2">
+                                    <div class="col-6 col-md-3">
+                                        <div class="p-2 border rounded">
+                                            <div class="small"><span class="badge bg-light text-dark me-1">A</span>{{ qs.question.option_a }}</div>
+                                            <div class="fw-bold mt-1">{{ qs.A }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-md-3">
+                                        <div class="p-2 border rounded">
+                                            <div class="small"><span class="badge bg-light text-dark me-1">B</span>{{ qs.question.option_b }}</div>
+                                            <div class="fw-bold mt-1">{{ qs.B }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-md-3">
+                                        <div class="p-2 border rounded">
+                                            <div class="small"><span class="badge bg-light text-dark me-1">C</span>{{ qs.question.option_c }}</div>
+                                            <div class="fw-bold mt-1">{{ qs.C }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-md-3">
+                                        <div class="p-2 border rounded">
+                                            <div class="small"><span class="badge bg-light text-dark me-1">D</span>{{ qs.question.option_d }}</div>
+                                            <div class="fw-bold mt-1">{{ qs.D }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% else %}
+                                <div class="mt-2">
+                                    <div class="small text-muted">Subjective question</div>
+                                    <div class="small">Total responses: {{ qs.total }}</div>
+                                    <a href="{% url 'quiz_mistake_analysis' quiz.id %}" class="btn btn-sm btn-outline-primary mt-2">
+                                        <i class="fas fa-brain me-1"></i>Analyze Responses
+                                    </a>
+                                </div>
+                            {% endif %}
+                        </div>
+                        {% if not forloop.last %}<hr>{% endif %}
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center text-muted">No responses yet.</div>
+                {% endif %}
             </div>
         </div>
-        {% endif %}
     </div>
     
     <div class="col-md-4">

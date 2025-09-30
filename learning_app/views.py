@@ -9,7 +9,7 @@ from django.utils import timezone
 from django.db.models import Q
 import json
 
-from .models import Course, Content, Quiz, UserProgress, ClickstreamEvent, VideoAnalytics, TeacherProfile, LiveQuiz, QuizQuestion, QuizParticipant, QuizAnswer, StudentAnalysis, QuizAnalytics
+from .models import Course, Content, Quiz, UserProgress, ClickstreamEvent, VideoAnalytics, TeacherProfile, LiveQuiz, QuizQuestion, QuizParticipant, QuizAnswer, StudentAnalysis, QuizAnalytics, SubjectiveAnswer
 from .utils import get_client_ip, log_clickstream_event
 from .llm_utils import llm_service
 from django.core.files.storage import default_storage
@@ -549,18 +549,30 @@ def add_question_manual(request, quiz_id):
         
         data = json.loads(request.body)
         
-        question = QuizQuestion.objects.create(
-            quiz=quiz,
-            question_text=data.get('question_text'),
-            option_a=data.get('option_a'),
-            option_b=data.get('option_b'),
-            option_c=data.get('option_c'),
-            option_d=data.get('option_d'),
-            correct_answer=data.get('correct_answer'),
-            explanation=data.get('explanation', ''),
-            generation_method='manual',
-            order=quiz.questions.count() + 1
-        )
+        question_type = data.get('question_type', 'mcq')
+        if question_type == 'subjective':
+            question = QuizQuestion.objects.create(
+                quiz=quiz,
+                question_text=data.get('question_text'),
+                question_type='subjective',
+                explanation=data.get('explanation', ''),
+                generation_method='manual',
+                order=quiz.questions.count() + 1
+            )
+        else:
+            question = QuizQuestion.objects.create(
+                quiz=quiz,
+                question_text=data.get('question_text'),
+                question_type='mcq',
+                option_a=data.get('option_a'),
+                option_b=data.get('option_b'),
+                option_c=data.get('option_c'),
+                option_d=data.get('option_d'),
+                correct_answer=data.get('correct_answer'),
+                explanation=data.get('explanation', ''),
+                generation_method='manual',
+                order=quiz.questions.count() + 1
+            )
         
         return JsonResponse({
             'success': True,
@@ -732,6 +744,33 @@ def quiz_results(request, quiz_id):
     quiz = get_object_or_404(LiveQuiz, id=quiz_id, teacher=teacher_profile)
     
     participants = quiz.participants.all().order_by('-score')
+    
+    # Per-question response stats
+    question_stats = []
+    for q in quiz.questions.all().order_by('order'):
+        if q.question_type == 'subjective':
+            # Count subjective answers
+            total_subj = q.subjectiveanswer_set.count()
+            question_stats.append({
+                'question': q,
+                'type': 'subjective',
+                'total': total_subj,
+            })
+        else:
+            total = QuizAnswer.objects.filter(question=q).count()
+            a = QuizAnswer.objects.filter(question=q, selected_answer='A').count()
+            b = QuizAnswer.objects.filter(question=q, selected_answer='B').count()
+            c = QuizAnswer.objects.filter(question=q, selected_answer='C').count()
+            d = QuizAnswer.objects.filter(question=q, selected_answer='D').count()
+            question_stats.append({
+                'question': q,
+                'type': 'mcq',
+                'total': total,
+                'A': a,
+                'B': b,
+                'C': c,
+                'D': d,
+            })
     analytics = getattr(quiz, 'analytics', None)
     
     # Generate word cloud if analytics exist
@@ -739,11 +778,14 @@ def quiz_results(request, quiz_id):
     if analytics and analytics.common_mistakes:
         word_cloud_image = generate_word_cloud(analytics.common_mistakes)
     
+    # Subjective answers word cloud per subjective question (optional enhancement)
+    
     context = {
         'quiz': quiz,
         'participants': participants,
         'analytics': analytics,
-        'word_cloud_image': word_cloud_image
+        'word_cloud_image': word_cloud_image,
+        'question_stats': question_stats
     }
     
     return render(request, 'learning_app/quiz_results.html', context)
@@ -1082,6 +1124,21 @@ def quiz_mistake_analysis(request, quiz_id):
             else:
                 messages.error(request, 'Please generate mistake analysis first!')
     
+    # Optional: If there are subjective answers, extract keywords and build word cloud
+    subjective_questions = quiz.questions.filter(question_type='subjective')
+    subjective_wordclouds = {}
+    for q in subjective_questions:
+        texts = list(SubjectiveAnswer.objects.filter(question=q).values_list('answer_text', flat=True))
+        if texts:
+            keywords = llm_service.extract_keywords_from_texts_groq(q.question_text[:40], texts)
+            # Convert keywords into frequencies
+            freq = {}
+            for kw in keywords:
+                freq[kw] = freq.get(kw, 0) + 1
+            img = generate_word_cloud(freq)
+            if img:
+                subjective_wordclouds[q.id] = img
+
     # Get data from session
     mistake_analysis = request.session.get('mistake_analysis', '')
     remedial_content = request.session.get('remedial_content', '')
@@ -1090,7 +1147,8 @@ def quiz_mistake_analysis(request, quiz_id):
         'quiz': quiz,
         'mistake_analysis': mistake_analysis,
         'remedial_content': remedial_content,
-        'participants': quiz.participants.filter(submitted_at__isnull=False)
+        'participants': quiz.participants.filter(submitted_at__isnull=False),
+        'subjective_wordclouds': subjective_wordclouds
     }
     
     return render(request, 'learning_app/quiz_mistake_analysis.html', context)

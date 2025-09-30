@@ -159,6 +159,7 @@ class QuizQuestion(models.Model):
     QUESTION_TYPES = [
         ('mcq', 'Multiple Choice'),
         ('true_false', 'True/False'),
+        ('subjective', 'Subjective'),
     ]
     
     GENERATION_METHOD = [
@@ -174,7 +175,7 @@ class QuizQuestion(models.Model):
     option_b = models.CharField(max_length=500, blank=True)
     option_c = models.CharField(max_length=500, blank=True)
     option_d = models.CharField(max_length=500, blank=True)
-    correct_answer = models.CharField(max_length=1, choices=[('A', 'A'), ('B', 'B'), ('C', 'C'), ('D', 'D')])
+    correct_answer = models.CharField(max_length=1, choices=[('A', 'A'), ('B', 'B'), ('C', 'C'), ('D', 'D')], blank=True)
     explanation = models.TextField(blank=True)
     generation_method = models.CharField(max_length=15, choices=GENERATION_METHOD, default='manual')
     source_text = models.TextField(blank=True, help_text="Source text used for LLM generation")
@@ -215,6 +216,19 @@ class QuizAnswer(models.Model):
     
     def __str__(self):
         return f"{self.participant.student_name} - {self.question.quiz.title} - Q{self.question.order}"
+
+
+class SubjectiveAnswer(models.Model):
+    participant = models.ForeignKey(QuizParticipant, on_delete=models.CASCADE, related_name='subjective_answers')
+    question = models.ForeignKey(QuizQuestion, on_delete=models.CASCADE)
+    answer_text = models.TextField()
+    answered_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['participant', 'question']
+
+    def __str__(self):
+        return f"{self.participant.student_name} - Subjective - Q{self.question.order}"
 
 
 class StudentAnalysis(models.Model):

@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 HF_TOKEN = "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"
 
 # Groq API - Free tier available
-GROQ_API_KEY = "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"  
+GROQ_API_KEY = "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"  
 # Multiple free API endpoints to try
 FREE_API_ENDPOINTS = [
     {
@@ -1077,6 +1077,45 @@ Correct: C"""
                 'topic': topic
             }
         ]
+    
+    def extract_keywords_from_texts_groq(self, topic, answers):
+        """Use Groq to extract important keywords from subjective answers"""
+        print(f"🤖 LLM INVOKED: Extracting keywords for topic: {topic}")
+        sample = "\n".join([f"- {a[:300]}" for a in answers[:20]])
+        prompt = f"""Extract the most important keywords and key phrases (single or multi-word) that represent core ideas and terminology from the following student answers about {topic}. 
+
+Return them as a comma-separated list, most important first, 15-30 items total. Avoid common stopwords. Group similar terms as one phrase.
+
+Answers:
+{sample}
+"""
+        for api_config in FREE_API_ENDPOINTS:
+            if api_config['type'] == 'groq':
+                try:
+                    payload = {
+                        "model": api_config['model'],
+                        "messages": [
+                            {"role": "system", "content": "You are an NLP assistant that extracts keywords and keyphrases."},
+                            {"role": "user", "content": prompt}
+                        ],
+                        "max_tokens": 500,
+                        "temperature": 0.3
+                    }
+                    headers = {"Content-Type": "application/json"}
+                    if GROQ_API_KEY:
+                        headers["Authorization"] = f"Bearer {GROQ_API_KEY}"
+                    response = requests.post(api_config['url'], headers=headers, json=payload, timeout=15)
+                    if response.status_code == 200:
+                        result = response.json()
+                        text = result['choices'][0]['message']['content']
+                        # Split by comma and normalize
+                        keywords = [k.strip() for k in text.replace('\n', ',').split(',') if len(k.strip()) > 1][:40]
+                        return keywords
+                except Exception as e:
+                    print(f"❌ Keyword extraction error: {str(e)}")
+                    continue
+        # simple fallback
+        return []
     
     def generate_mistake_analysis_for_teachers(self, quiz, wrong_answers):
         """Generate comprehensive analysis of student mistakes for teachers using Groq"""

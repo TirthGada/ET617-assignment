@@ -236,6 +236,27 @@
                 </div>
             </div>
         </div>
+
+        {% if subjective_wordclouds %}
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-cloud me-2"></i>Subjective Answer Keywords</h6>
+            </div>
+            <div class="card-body">
+                <div class="small text-muted mb-2">AI-extracted important words from subjective answers</div>
+                {% for qid, img in subjective_wordclouds.items %}
+                    {% for q in quiz.questions.all %}
+                        {% if q.id == qid %}
+                        <div class="mb-3">
+                            <div class="small fw-bold">Q{{ q.order }}. {{ q.question_text|truncatechars:80 }}</div>
+                            <img src="{{ img }}" class="img-fluid rounded border" alt="Word Cloud">
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
     </div>
 </div>
 
