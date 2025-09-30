@@ -255,9 +255,54 @@
         </div>
     </div>
 </div>
+ 
+<!-- Question-wise Responses -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Question-wise Responses</h5>
+    </div>
+    <div class="card-body">
+        {% if quiz.questions.all %}
+            {% for q in quiz.questions.all %}
+            <div class="mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <strong>Q{{ forloop.counter }}.</strong>
+                    <span class="badge bg-secondary">Correct: {{ q.correct_answer }}</span>
+                </div>
+                <div class="small text-muted mb-2">{{ q.question_text }}</div>
+                <div class="row align-items-center">
+                    <div class="col-md-7">
+                        <canvas id="qChart-{{ q.id }}" height="90"></canvas>
+                    </div>
+                    <div class="col-md-5">
+                        <table class="table table-sm mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Option</th>
+                                    <th>Text</th>
+                                    <th class="text-end">Count</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>A</td><td>{{ q.option_a }}</td><td class="text-end"><span id="q-{{ q.id }}-A">0</span></td></tr>
+                                <tr><td>B</td><td>{{ q.option_b }}</td><td class="text-end"><span id="q-{{ q.id }}-B">0</span></td></tr>
+                                <tr><td>C</td><td>{{ q.option_c }}</td><td class="text-end"><span id="q-{{ q.id }}-C">0</span></td></tr>
+                                <tr><td>D</td><td>{{ q.option_d }}</td><td class="text-end"><span id="q-{{ q.id }}-D">0</span></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="text-muted">No questions to display.</div>
+        {% endif %}
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 function exportResults() {
     // Simple CSV export
@@ -280,5 +325,73 @@ function createSimilarQuiz() {
         window.location.href = '{% url "create_quiz" %}';
     }
 }
+
+// Build aggregated answer data per question
+const questionData = {
+    {% for q in quiz.questions.all %}
+    {{ q.id }}: {
+        correct: '{{ q.correct_answer }}',
+        counts: { A: 0, B: 0, C: 0, D: 0 },
+        labels: ['A', 'B', 'C', 'D']
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+};
+
+{% for participant in participants %}
+    {% for ans in participant.answers.all %}
+        {% if ans.question.quiz.id == quiz.id %}
+questionData[{{ ans.question.id }}].counts['{{ ans.selected_answer }}']++;
+        {% endif %}
+    {% endfor %}
+{% endfor %}
+
+// Update counts in the side table and render charts
+Object.keys(questionData).forEach(function(qid) {
+    const q = questionData[qid];
+    // Update table counts
+    ['A','B','C','D'].forEach(function(opt) {
+        const el = document.getElementById(`q-${qid}-${opt}`);
+        if (el) el.textContent = q.counts[opt];
+    });
+
+    // Prepare per-bar colors (green for correct option, blue for others)
+    const bg = ['A','B','C','D'].map(opt => opt === q.correct ? 'rgba(46, 204, 113, 0.7)' : 'rgba(52, 152, 219, 0.7)');
+    const border = ['A','B','C','D'].map(opt => opt === q.correct ? 'rgba(39, 174, 96, 1)' : 'rgba(41, 128, 185, 1)');
+
+    const ctx = document.getElementById(`qChart-${qid}`);
+    if (!ctx) return;
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: q.labels,
+            datasets: [{
+                label: 'Responses',
+                data: [q.counts.A, q.counts.B, q.counts.C, q.counts.D],
+                backgroundColor: bg,
+                borderColor: border,
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const opt = context.label;
+                            const val = context.raw;
+                            const correctness = (opt === q.correct) ? ' (correct)' : '';
+                            return `${opt}: ${val}${correctness}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: { beginAtZero: true, ticks: { precision: 0 } }
+            }
+        }
+    });
+});
 </script>
 {% endblock %}

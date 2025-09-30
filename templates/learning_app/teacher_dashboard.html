@@ -164,12 +164,14 @@
     <div class="card-body">
         <canvas id="feedbackChart" height="80"></canvas>
         <hr>
-        <table class="table table-striped mt-3">
+            <table class="table table-striped mt-3">
             <thead>
                 <tr>
                     <th>ID</th>
                     <th>Message</th>
                     <th>Rating</th>
+                        <th>Course</th>
+                        <th>Content</th>
                     <th>Submitted By</th>
                     <th>Date</th>
                 </tr>
@@ -208,15 +210,7 @@
     </div>
 </div>
 
-<!-- ====== QUIZ OVERVIEW ====== -->
-<div class="card mt-4">
-    <div class="card-header">
-        <h4>Quiz Overview</h4>
-    </div>
-    <div class="card-body">
-        <canvas id="quizChart" height="90"></canvas>
-    </div>
-    </div>
+
 
 {% endblock %}
 
@@ -237,9 +231,11 @@ document.addEventListener("DOMContentLoaded", function() {
                 tbody.innerHTML += `
                     <tr>
                         <td>${fb.id}</td>
-                        <td>${fb.message}</td>
+                        <td>${fb.comment || "-"}</td>
                         <td>${fb.rating || "-"}</td>
-                        <td>${fb.user || "Anonymous"}</td>
+                        <td>${fb.course_title || '-'}</td>
+                        <td>${fb.content_title || '-'}</td>
+                        <td>${fb.anonymous ? "Anonymous" : (fb.student_username || "-")}</td>
                         <td>${new Date(fb.created_at).toLocaleString()}</td>
                     </tr>
                 `;
@@ -278,7 +274,7 @@ document.addEventListener("DOMContentLoaded", function() {
                         <td>${doubt.text}</td>
                         <td>${doubt.status === 'answered' ? "Answered" : (doubt.status === 'in_progress' ? 'In progress' : 'Pending')}</td>
                         <td>${doubt.resolution || "-"}</td>
-                        <td>${doubt.student || "Anonymous"}</td>
+                        <td>${doubt.anonymous ? "Anonymous" : (doubt.student_username || "-")}</td>
                         <td>${actionBtn}</td>
                         <td>${new Date(doubt.created_at).toLocaleString()}</td>
                     </tr>
@@ -305,31 +301,7 @@ document.addEventListener("DOMContentLoaded", function() {
             });
         });
 
-    // Quiz Overview (participants per quiz)
-    const quizLabels = [
-        {% for quiz in quizzes %}'{{ quiz.title|escapejs }}'{% if not forloop.last %}, {% endif %}{% endfor %}
-    ];
-    const participantCounts = [
-        {% for quiz in quizzes %}{{ quiz.participants.count }}{% if not forloop.last %}, {% endif %}{% endfor %}
-    ];
-    if (quizLabels.length > 0) {
-        new Chart(document.getElementById("quizChart"), {
-            type: "bar",
-            data: {
-                labels: quizLabels,
-                datasets: [{
-                    label: "Participants",
-                    data: participantCounts,
-                    backgroundColor: "rgba(75, 192, 192, 0.6)"
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: { legend: { display: true } },
-                scales: { y: { beginAtZero: true, precision: 0 } }
-            }
-        });
-    }
+    // (Removed Quiz Overview chart)
 });
 
 function getCookie(name) {
