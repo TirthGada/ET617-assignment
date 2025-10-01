@@ -70,6 +70,39 @@ QUESTION_PATTERNS = {
     ]
 }
 
+BLOOMS_TAXONOMY = {
+    'remember': {
+        'description': 'Recall facts and basic concepts',
+        'verbs': ['define', 'identify', 'list', 'name', 'recall', 'recognize', 'state'],
+        'instruction': 'Create questions that test recall of facts, terms, and basic concepts. Focus on recognition and remembering.'
+    },
+    'understand': {
+        'description': 'Explain ideas or concepts',
+        'verbs': ['classify', 'describe', 'discuss', 'explain', 'interpret', 'summarize'],
+        'instruction': 'Create questions that test comprehension and understanding. Students should explain concepts in their own words.'
+    },
+    'apply': {
+        'description': 'Use information in new situations',
+        'verbs': ['apply', 'demonstrate', 'solve', 'use', 'execute', 'implement'],
+        'instruction': 'Create questions that require applying knowledge to new situations or solving practical numerical problems.'
+    },
+    'analyze': {
+        'description': 'Draw connections among ideas',
+        'verbs': ['analyze', 'compare', 'contrast', 'differentiate', 'examine', 'categorize'],
+        'instruction': 'Create questions that require breaking down information, finding relationships, and analyzing patterns.'
+    },
+    'evaluate': {
+        'description': 'Justify a decision or course of action',
+        'verbs': ['assess', 'critique', 'evaluate', 'judge', 'justify', 'recommend'],
+        'instruction': 'Create questions that require making judgments, defending positions, or evaluating options.'
+    },
+    'create': {
+        'description': 'Produce new or original work',
+        'verbs': ['create', 'design', 'develop', 'construct', 'formulate', 'propose'],
+        'instruction': 'Create questions that require synthesizing information to create something new or propose solutions.'
+    }
+}
+
 class LLMService:
     def __init__(self):
         self.headers = {
@@ -77,9 +110,12 @@ class LLMService:
             "Content-Type": "application/json"
         }
     
-    def generate_questions_from_text(self, text, num_questions=5, topic=""):
-        """Generate quiz questions from given text using multiple free LLM APIs"""
-        print(f"🤖 LLM INVOKED: Generating {num_questions} questions from text about '{topic}'")
+    def generate_questions_from_text(self, text, num_questions=5, topic="", blooms_level="understand"):
+        """Generate quiz questions from given text using multiple free LLM APIs with Bloom's taxonomy"""
+        print(f"🤖 LLM INVOKED: Generating {num_questions} questions at '{blooms_level}' level about '{topic}'")
+        
+        # Get Bloom's taxonomy guidance
+        blooms_info = BLOOMS_TAXONOMY.get(blooms_level, BLOOMS_TAXONOMY['understand'])
         
         # Try each API endpoint
         for api_config in FREE_API_ENDPOINTS:
@@ -87,74 +123,73 @@ class LLMService:
                 print(f"🔄 Trying {api_config['name']}...")
                 
                 if api_config['type'] == 'groq':
-                    questions = self._try_groq_api(api_config, text, num_questions, topic)
+                    questions = self._try_groq_api(api_config, text, num_questions, topic, blooms_level, blooms_info)
                 else:
                     continue
                 
                 if questions:
-                    print(f"✅ Successfully generated {len(questions)} questions using {api_config['name']}")
+                    print(f"✅ Successfully generated {len(questions)} questions at '{blooms_level}' level using {api_config['name']}")
                     return questions
                     
             except Exception as e:
                 print(f"❌ {api_config['name']} failed: {str(e)}")
                 continue
         
-        print(f"❌ All LLM APIs failed - trying one more time with different approach")
-        
-        # Last attempt with a very simple approach
+        print(f"❌ All LLM APIs failed")
         return self._last_resort_llm_attempt(text, num_questions, topic)
     
-    
-    def _try_groq_api(self, api_config, text, num_questions, topic):
-        """Try Groq API - very fast and has free tier"""
-        print(f"🚀 Trying Groq API with model {api_config['model']}")
+    def _try_groq_api(self, api_config, text, num_questions, topic, blooms_level="understand", blooms_info=None):
+        """Try Groq API with Bloom's taxonomy guidance"""
+        print(f"🚀 Trying Groq API with model {api_config['model']} at '{blooms_level}' level")
         
-        # Groq works without API key for basic usage, but let's try anyway
-        prompt = f"""Create {num_questions} multiple choice quiz questions about {topic}.
+        if blooms_info is None:
+            blooms_info = BLOOMS_TAXONOMY.get(blooms_level, BLOOMS_TAXONOMY['understand'])
+        
+        # Enhanced prompt with Bloom's taxonomy
+        prompt = f"""Create {num_questions} multiple choice quiz questions about {topic} at the "{blooms_level.upper()}" level of Bloom's Taxonomy.
+
+BLOOM'S TAXONOMY LEVEL: {blooms_level.upper()}
+Description: {blooms_info['description']}
+Instruction: {blooms_info['instruction']}
+Key verbs to use: {', '.join(blooms_info['verbs'])}
 
 Text content: {text[:3000]}
 
-Please format each question exactly like this:
+IMPORTANT: Questions MUST align with the {blooms_level} level:
+- Use appropriate cognitive verbs from the list above
+- Test the specific cognitive skill for this level
+- Make questions progressively challenging within this level
 
-Q1: What is the main concept in {topic}?
+Format each question exactly like this:
+
+Q1: [Question using {blooms_level} level verbs like {blooms_info['verbs'][0]}, {blooms_info['verbs'][1]}]
 A) First option
 B) Second option  
 C) Third option
 D) Fourth option
 Answer: A
-Explanation: Brief explanation of why A is correct and why other options are wrong.
+Explanation: Brief explanation showing why this tests {blooms_level} level thinking.
 
-Q2: Which statement about {topic} is correct?
-A) First option
-B) Second option
-C) Third option  
-D) Fourth option
-Answer: B
-Explanation: Brief explanation of why B is correct and what makes it the best choice.
-
-Generate {num_questions} questions now with detailed explanations:"""
+Generate {num_questions} questions NOW at the {blooms_level.upper()} level:"""
 
         payload = {
             "model": api_config['model'],
             "messages": [
                 {
                     "role": "system", 
-                    "content": "You are a quiz generator. Create clear, educational multiple choice questions based on the given text."
+                    "content": f"You are an expert educational quiz generator specializing in Bloom's Taxonomy. Create questions at the '{blooms_level}' cognitive level: {blooms_info['description']}. Use verbs like: {', '.join(blooms_info['verbs'][:4])}."
                 },
                 {
                     "role": "user",
                     "content": prompt
                 }
             ],
-            "max_tokens": 1000,
+            "max_tokens": 1500,
             "temperature": 0.7
         }
         
-        headers = {
-            "Content-Type": "application/json"
-        }
+        headers = {"Content-Type": "application/json"}
         
-        # Add API key if available
         if GROQ_API_KEY:
             headers["Authorization"] = f"Bearer {GROQ_API_KEY}"
         
@@ -173,16 +208,15 @@ Generate {num_questions} questions now with detailed explanations:"""
                 
                 if 'choices' in result and len(result['choices']) > 0:
                     generated_text = result['choices'][0]['message']['content']
-                    print(f"   ✅ Groq generated text: {generated_text[:150]}...")
+                    print(f"   ✅ Groq generated text with {blooms_level} level: {generated_text[:150]}...")
                     
                     questions = self.parse_generated_questions(generated_text, topic)
                     if questions and len(questions) > 0:
-                        print(f"   🎯 Successfully parsed {len(questions)} questions from Groq!")
+                        print(f"   🎯 Successfully parsed {len(questions)} questions at {blooms_level} level from Groq!")
                         return questions
             
             elif response.status_code == 401:
                 print(f"   🔑 Groq needs API key. Get free key at https://console.groq.com/")
-                print(f"   💡 Add GROQ_API_KEY to your environment or llm_utils.py")
                 return None
             
             elif response.status_code == 429:
@@ -190,7 +224,7 @@ Generate {num_questions} questions now with detailed explanations:"""
                 return None
             
             else:
-                print(f"   ❌ Groq API error: {response.status_code} - {response.text[:200]}")
+                print(f"   ❌ Groq API error: {response.status_code}")
                 return None
                 
         except requests.exceptions.Timeout:

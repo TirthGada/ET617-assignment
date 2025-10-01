@@ -120,6 +120,20 @@
                                         <input type="text" class="form-control form-control-sm" name="topic" value="{{ quiz.title }}">
                                     </div>
                                     <div class="mb-2">
+                                        <label class="form-label">
+                                            Bloom's Taxonomy Level
+                                            <i class="fas fa-info-circle text-muted" data-bs-toggle="tooltip" title="Select cognitive level for question generation"></i>
+                                        </label>
+                                        <select class="form-select form-select-sm" name="blooms_level" required>
+                                            <option value="remember">Remember - Recall facts and basic concepts</option>
+                                            <option value="understand" selected>Understand - Explain ideas or concepts</option>
+                                            <option value="apply">Apply - Use information in new situations</option>
+                                            <option value="analyze">Analyze - Draw connections among ideas</option>
+                                            <option value="evaluate">Evaluate - Justify a decision or course of action</option>
+                                            <option value="create">Create - Produce new or original work</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-2">
                                         <label class="form-label">Text Content</label>
                                         <textarea class="form-control form-control-sm" name="text_content" rows="4" placeholder="Paste your text content here..." required></textarea>
                                     </div>
@@ -153,6 +167,20 @@
                                         <input type="text" class="form-control form-control-sm" name="topic" value="{{ quiz.title }}">
                                     </div>
                                     <div class="mb-2">
+                                        <label class="form-label">
+                                            Bloom's Taxonomy Level
+                                            <i class="fas fa-info-circle text-muted" data-bs-toggle="tooltip" title="Select cognitive level for question generation"></i>
+                                        </label>
+                                        <select class="form-select form-select-sm" name="blooms_level" required>
+                                            <option value="remember">Remember - Recall facts and basic concepts</option>
+                                            <option value="understand" selected>Understand - Explain ideas or concepts</option>
+                                            <option value="apply">Apply - Use information in new situations</option>
+                                            <option value="analyze">Analyze - Draw connections among ideas</option>
+                                            <option value="evaluate">Evaluate - Justify a decision or course of action</option>
+                                            <option value="create">Create - Produce new or original work</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-2">
                                         <label class="form-label">PDF File</label>
                                         <input type="file" class="form-control form-control-sm" name="pdf_file" accept=".pdf" required>
                                     </div>
@@ -176,100 +204,100 @@
         </div>
     </div>
 
-<!-- Questions List -->
-<div class="col-md-8">
-    <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h6 class="mb-0"><i class="fas fa-list me-2"></i>Questions ({{ quiz.questions.count }})</h6>
-            {% if pending_count > 0 %}
-                <span class="badge bg-warning">
-                    {{ pending_count }} Pending Review
-                </span>
-            {% endif %}
-        </div>
-        <div class="card-body">
-            <div id="questionsList">
-                {% if questions %}
-                    {% for question in questions %}
-                    <div class="card mb-3 question-card" id="question-{{ question.id }}">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="mb-0">Question {{ question.order }}</h6>
-                                <small class="text-muted">{{ question.get_generation_method_display }}</small>
-                            </div>
-                            <div class="d-flex align-items-center gap-2">
-                                <!-- Approval Status Badge -->
-                                {% if question.approval_status == 'pending' %}
-                                    <span class="badge bg-warning">Pending Review</span>
-                                {% elif question.approval_status == 'approved' %}
-                                    <span class="badge bg-success">Approved</span>
-                                {% endif %}
-                                
-                                <!-- Action Buttons -->
-                                <div class="btn-group btn-group-sm">
-                                    {% if question.approval_status == 'pending' %}
-                                        <button class="btn btn-success btn-sm" onclick="approveQuestion({{ question.id }})" title="Approve">
-                                            <i class="fas fa-check"></i>
-                                        </button>
-                                        <button class="btn btn-danger btn-sm" onclick="rejectQuestion({{ question.id }})" title="Reject & Delete">
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                    {% else %}
-                                        <button class="btn btn-danger btn-sm" onclick="deleteQuestion({{ question.id }})" title="Delete">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
-                        <div class="card-body">
-                            <p class="fw-bold">{{ question.question_text }}</p>
-                            {% if question.question_type == 'mcq' %}
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <p class="mb-1">
-                                            <span class="badge bg-light text-dark me-2">A</span>{{ question.option_a }}
-                                            {% if question.correct_answer == 'A' %}<i class="fas fa-check text-success ms-1"></i>{% endif %}
-                                        </p>
-                                        <p class="mb-1">
-                                            <span class="badge bg-light text-dark me-2">B</span>{{ question.option_b }}
-                                            {% if question.correct_answer == 'B' %}<i class="fas fa-check text-success ms-1"></i>{% endif %}
-                                        </p>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <p class="mb-1">
-                                            <span class="badge bg-light text-dark me-2">C</span>{{ question.option_c }}
-                                            {% if question.correct_answer == 'C' %}<i class="fas fa-check text-success ms-1"></i>{% endif %}
-                                        </p>
-                                        <p class="mb-1">
-                                            <span class="badge bg-light text-dark me-2">D</span>{{ question.option_d }}
-                                            {% if question.correct_answer == 'D' %}<i class="fas fa-check text-success ms-1"></i>{% endif %}
-                                        </p>
-                                    </div>
-                                </div>
-                            {% else %}
-                                <p class="text-muted"><em>Subjective Question</em></p>
-                            {% endif %}
-                            {% if question.explanation %}
-                                <div class="mt-2">
-                                    <small class="text-muted"><strong>Explanation:</strong> {{ question.explanation }}</small>
-                                </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                    {% endfor %}
-                {% else %}
-                    <div class="text-center py-4">
-                        <i class="fas fa-question-circle fa-3x text-muted mb-3"></i>
-                        <h5 class="text-muted">No questions yet</h5>
-                        <p class="text-muted">Add your first question using the panel on the left!</p>
-                    </div>
+    <!-- Questions List -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0"><i class="fas fa-list me-2"></i>Questions ({{ quiz.questions.count }})</h6>
+                {% if pending_count > 0 %}
+                    <span class="badge bg-warning">
+                        {{ pending_count }} Pending Review
+                    </span>
                 {% endif %}
+            </div>
+            <div class="card-body">
+                <div id="questionsList">
+                    {% if questions %}
+                        {% for question in questions %}
+                        <div class="card mb-3 question-card" id="question-{{ question.id }}">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-0">Question {{ question.order }}</h6>
+                                    <small class="text-muted">{{ question.get_generation_method_display }}</small>
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <!-- Approval Status Badge -->
+                                    {% if question.approval_status == 'pending' %}
+                                        <span class="badge bg-warning">Pending Review</span>
+                                    {% elif question.approval_status == 'approved' %}
+                                        <span class="badge bg-success">Approved</span>
+                                    {% endif %}
+                                    
+                                    <!-- Action Buttons -->
+                                    <div class="btn-group btn-group-sm">
+                                        {% if question.approval_status == 'pending' %}
+                                            <button class="btn btn-success btn-sm" onclick="approveQuestion({{ question.id }})" title="Approve">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                            <button class="btn btn-danger btn-sm" onclick="rejectQuestion({{ question.id }})" title="Reject & Delete">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        {% else %}
+                                            <button class="btn btn-danger btn-sm" onclick="deleteQuestion({{ question.id }})" title="Delete">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <p class="fw-bold">{{ question.question_text }}</p>
+                                {% if question.question_type == 'mcq' %}
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <p class="mb-1">
+                                                <span class="badge bg-light text-dark me-2">A</span>{{ question.option_a }}
+                                                {% if question.correct_answer == 'A' %}<i class="fas fa-check text-success ms-1"></i>{% endif %}
+                                            </p>
+                                            <p class="mb-1">
+                                                <span class="badge bg-light text-dark me-2">B</span>{{ question.option_b }}
+                                                {% if question.correct_answer == 'B' %}<i class="fas fa-check text-success ms-1"></i>{% endif %}
+                                            </p>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <p class="mb-1">
+                                                <span class="badge bg-light text-dark me-2">C</span>{{ question.option_c }}
+                                                {% if question.correct_answer == 'C' %}<i class="fas fa-check text-success ms-1"></i>{% endif %}
+                                            </p>
+                                            <p class="mb-1">
+                                                <span class="badge bg-light text-dark me-2">D</span>{{ question.option_d }}
+                                                {% if question.correct_answer == 'D' %}<i class="fas fa-check text-success ms-1"></i>{% endif %}
+                                            </p>
+                                        </div>
+                                    </div>
+                                {% else %}
+                                    <p class="text-muted"><em>Subjective Question</em></p>
+                                {% endif %}
+                                {% if question.explanation %}
+                                    <div class="mt-2">
+                                        <small class="text-muted"><strong>Explanation:</strong> {{ question.explanation }}</small>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-question-circle fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No questions yet</h5>
+                            <p class="text-muted">Add your first question using the panel on the left!</p>
+                        </div>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>
 </div>
-
 
 <!-- Loading Modal -->
 <div class="modal fade" id="loadingModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
@@ -286,10 +314,17 @@
     </div>
 </div>
 {% endblock %}
+
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
+    
+    // Initialize tooltips
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
     
     // Manual question form
     document.getElementById('manualQuestionForm').addEventListener('submit', function(e) {
@@ -347,13 +382,18 @@ document.addEventListener('DOMContentLoaded', function() {
     typeSelect.addEventListener('change', toggleFields);
     toggleFields();
     
-    // AI Text form
+    // AI Text form with Bloom's Taxonomy
     document.getElementById('aiTextForm').addEventListener('submit', function(e) {
         e.preventDefault();
         loadingModal.show();
         
         const formData = new FormData(this);
         const data = Object.fromEntries(formData.entries());
+        
+        // Add Bloom's taxonomy instruction to the prompt
+        const bloomsLevel = data.blooms_level;
+        const bloomsInstruction = `Generate questions based on the "${bloomsLevel}" level of Bloom's Taxonomy. `;
+        data.blooms_instruction = bloomsInstruction;
         
         fetch('{% url "generate_questions_from_text" quiz.id %}', {
             method: 'POST',
@@ -380,12 +420,17 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // AI PDF form
+    // AI PDF form with Bloom's Taxonomy
     document.getElementById('aiPdfForm').addEventListener('submit', function(e) {
         e.preventDefault();
         loadingModal.show();
         
         const formData = new FormData(this);
+        
+        // Add Bloom's taxonomy instruction
+        const bloomsLevel = formData.get('blooms_level');
+        const bloomsInstruction = `Generate questions based on the "${bloomsLevel}" level of Bloom's Taxonomy. `;
+        formData.append('blooms_instruction', bloomsInstruction);
         
         fetch('{% url "generate_questions_from_pdf" quiz.id %}', {
             method: 'POST',
