@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 # Your Hugging Face token
 HF_TOKEN = "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"
 
+GROQ_API_KEY="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"
 # Groq API - Free tier available
 # Multiple free API endpoints to try
 FREE_API_ENDPOINTS = [
@@ -88,12 +89,6 @@ class LLMService:
                 
                 if api_config['type'] == 'groq':
                     questions = self._try_groq_api(api_config, text, num_questions, topic)
-                elif api_config['type'] == 'huggingface':
-                    questions = self._try_huggingface_api(api_config, text, num_questions, topic)
-                elif api_config['type'] == 'openai':
-                    questions = self._try_openai_api(api_config, text, num_questions, topic)
-                elif api_config['type'] == 'ollama':
-                    questions = self._try_ollama_api(api_config, text, num_questions, topic)
                 else:
                     continue
                 
@@ -110,85 +105,6 @@ class LLMService:
         # Last attempt with a very simple approach
         return self._last_resort_llm_attempt(text, num_questions, topic)
     
-    def _try_huggingface_api(self, api_config, text, num_questions, topic):
-        """Try Hugging Face API with retry logic"""
-        # Simple, clear prompt that works better with smaller models
-        prompt = f"""Create {num_questions} quiz questions about {topic}.
-
-Text: {text[:800]}
-
-Format:
-Q1: What is the main concept?
-A) option1 B) option2 C) option3 D) option4
-Answer: A
-
-Q2: Which is correct?
-A) option1 B) option2 C) option3 D) option4
-Answer: B"""
-        
-        # Try multiple times with different parameters
-        attempts = [
-            {"max_new_tokens": 400, "temperature": 0.3, "timeout": 10},
-            {"max_new_tokens": 600, "temperature": 0.7, "timeout": 15},
-            {"max_new_tokens": 300, "temperature": 0.1, "timeout": 8}
-        ]
-        
-        for attempt in attempts:
-            try:
-                payload = {
-                    "inputs": prompt,
-                    "parameters": {
-                        "max_new_tokens": attempt["max_new_tokens"],
-                        "temperature": attempt["temperature"],
-                        "do_sample": True,
-                        "return_full_text": False
-                    }
-                }
-                
-                print(f"   🔄 Trying with {attempt['max_new_tokens']} tokens, temp {attempt['temperature']}")
-                
-                response = requests.post(
-                    api_config['url'],
-                    headers={"Authorization": f"Bearer {HF_TOKEN}", "Content-Type": "application/json"},
-                    json=payload,
-                    timeout=attempt["timeout"]
-                )
-                
-                if response.status_code == 200:
-                    result = response.json()
-                    generated_text = ""
-                    
-                    if isinstance(result, list) and len(result) > 0:
-                        generated_text = result[0].get('generated_text', '')
-                    elif isinstance(result, dict):
-                        generated_text = result.get('generated_text', '')
-                    
-                    if generated_text and len(generated_text) > 50:
-                        print(f"   ✅ Got response: {generated_text[:100]}...")
-                        questions = self.parse_generated_questions(generated_text, topic)
-                        if questions and len(questions) > 0:
-                            return questions
-                
-                elif response.status_code == 503:
-                    print(f"   ⏳ Model loading, waiting...")
-                    import time
-                    time.sleep(5)
-                    continue
-                elif response.status_code == 504:
-                    print(f"   ⏰ Timeout, trying next parameters...")
-                    continue
-                else:
-                    print(f"   ❌ HTTP {response.status_code}: {response.text[:200]}")
-                    continue
-                    
-            except requests.exceptions.Timeout:
-                print(f"   ⏰ Request timeout after {attempt['timeout']}s")
-                continue
-            except Exception as e:
-                print(f"   ❌ Error: {str(e)}")
-                continue
-        
-        return None
     
     def _try_groq_api(self, api_config, text, num_questions, topic):
         """Try Groq API - very fast and has free tier"""
@@ -197,7 +113,7 @@ Answer: B"""
         # Groq works without API key for basic usage, but let's try anyway
         prompt = f"""Create {num_questions} multiple choice quiz questions about {topic}.
 
-Text content: {text[:1000]}
+Text content: {text[:3000]}
 
 Please format each question exactly like this:
 
@@ -284,63 +200,6 @@ Generate {num_questions} questions now with detailed explanations:"""
         except Exception as e:
             print(f"   ❌ Groq API exception: {str(e)}")
             return None
-    
-    def _try_openai_api(self, api_config, text, num_questions, topic):
-        """Try OpenAI-compatible APIs (Groq, Together AI, etc.)"""
-        prompt = f"""Create {num_questions} multiple choice questions about {topic}.
-
-Text: {text[:1200]}
-
-Format each question exactly like this:
-Q1: What is the main concept?
-A) Option 1 B) Option 2 C) Option 3 D) Option 4
-Answer: A
-
-Q2: Which statement is true?
-A) Option 1 B) Option 2 C) Option 3 D) Option 4  
-Answer: B"""
-
-        payload = {
-            "model": api_config.get('model', 'gpt-3.5-turbo'),
-            "messages": [
-                {"role": "user", "content": prompt}
-            ],
-            "max_tokens": 800,
-            "temperature": 0.7
-        }
-        
-        headers = {"Content-Type": "application/json"}
-        
-        # Note: These would need API keys for actual use
-        # For now, we'll skip these and rely on fallback
-        return None
-    
-    def _try_ollama_api(self, api_config, text, num_questions, topic):
-        """Try local Ollama API"""
-        try:
-            prompt = f"Create {num_questions} quiz questions about {topic} based on: {text[:800]}"
-            
-            payload = {
-                "model": api_config.get('model', 'llama2'),
-                "prompt": prompt,
-                "stream": False
-            }
-            
-            response = requests.post(
-                api_config['url'],
-                json=payload,
-                timeout=30
-            )
-            
-            if response.status_code == 200:
-                result = response.json()
-                generated_text = result.get('response', '')
-                if generated_text:
-                    return self.parse_generated_questions(generated_text, topic)
-        except:
-            pass
-        
-        return None
     
     def _last_resort_llm_attempt(self, text, num_questions, topic):
         """Last resort: try the simplest possible LLM call"""
@@ -557,7 +416,7 @@ Answer: B"""
             # Extract text from PDF
             pdf_reader = PyPDF2.PdfReader(io.BytesIO(pdf_file.read()))
             text = ""
-            for page in pdf_reader.pages[:5]:  # Limit to first 5 pages
+            for page in pdf_reader.pages[:25]:  # Limit to first 25 pages
                 text += page.extract_text()
             
             print(f"📄 PDF text extracted: {len(text)} characters")
@@ -1122,7 +981,7 @@ Answers:
         
         # Prepare mistake data
         mistake_summary = []
-        for mistake in wrong_answers[:10]:  # Limit to first 10 mistakes
+        for mistake in wrong_answers[:1000]:  # Limit to first 1000 mistakes
             mistake_summary.append(
                 f"Student {mistake['student']}: Question '{mistake['question']}' - "
                 f"Selected '{mistake['selected_text']}' instead of '{mistake['correct_text']}'"
@@ -1231,7 +1090,7 @@ STUDENT SUPPORT:
         prompt = f"""Based on the mistake analysis from a quiz about {quiz.title}, create educational content to help students learn and improve.
 
 Teacher's Mistake Analysis:
-{mistake_analysis[:1000]}
+{mistake_analysis[:10000]}
 
 Create comprehensive learning content for students that includes:
 
