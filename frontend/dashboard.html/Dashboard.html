@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Learning Platform - Teachers Dashboard</title>
+    <link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body class="dark-mode">
+    <header class="navbar">
+        <div class="logo">
+            <img src="https://via.placeholder.com/24" alt="Logo"> Learning Platform
+        </div>
+        <nav class="nav-links">
+            <!-- For logged-in state, showing Dashboard and User name -->
+            <a href="dashboard.html" class="nav-link active-nav-link">✔ Dashboard</a>
+            <span class="nav-link user-name">Aman ▼</span>
+        </nav>
+    </header>
+
+    <main class="dashboard-container">
+        <div class="page-title">
+            <img src="https://via.placeholder.com/24" alt="Dashboard icon">
+            <h1>Teachers Dashboard</h1>
+        </div>
+
+        <div class="dashboard-grid">
+            <!-- Daily Task Card -->
+            <div class="dashboard-card daily-task">
+                <h3>Daily Task</h3>
+                <p>6 quiz</p>
+                <div class="progress-bar-container">
+                    <div class="progress-bar" style="width: 66%;"></div> <!-- Example: 4/6 quizzes -->
+                </div>
+                <p class="progress-text">4 of 6 quizzes are made</p>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="dashboard-actions">
+                <a href="create-quiz.html" class="action-button create-quiz">
+                    <span>+</span>
+                    <p>Create Quiz</p>
+                </a>
+                <a href="#" class="action-button solo-mode">
+                    <img src="https://via.placeholder.com/30" alt="Solo icon">
+                    <p>Solo Mode</p>
+                </a>
+                <a href="#" class="action-button multiplayer">
+                    <img src="https://via.placeholder.com/30" alt="Multiplayer icon">
+                    <p>Multiplayer</p>
+                </a>
+            </div>
+
+            <!-- Quiz Summary Cards -->
+            <div class="dashboard-summary-cards">
+                <div class="summary-card total-quizzes">
+                    <h4>Total Quizzes</h4>
+                    <p>2</p>
+                    <img src="https://via.placeholder.com/30" alt="Quiz icon">
+                </div>
+                <div class="summary-card active-quizzes">
+                    <h4>Active Quizzes</h4>
+                    <p>2</p>
+                    <img src="https://via.placeholder.com/30" alt="Play icon">
+                </div>
+                <div class="summary-card total-participants">
+                    <h4>Total Participants</h4>
+                    <p>0</p>
+                    <img src="https://via.placeholder.com/30" alt="Participants icon">
+                </div>
+            </div>
+
+            <!-- Your Quizzes Table -->
+            <div class="dashboard-card your-quizzes-table">
+                <div class="table-header">
+                    <img src="https://via.placeholder.com/20" alt="List icon">
+                    <h3>Your Quizzes</h3>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>TITLE</th>
+                            <th>STATUS</th>
+                            <th>QUESTIONS</th>
+                            <th>PARTICIPANTS</th>
+                            <th>QUIZ CODE</th>
+                            <th>CREATED</th>
+                            <th>ACTIONS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Quiz 1 -->
+                        <tr data-quiz-id="quiz1" class="quiz-row">
+                            <td><a href="quiz-results.html?quizId=quiz1">jfiewi</a></td>
+                            <td><span class="status-badge ended">Ended</span></td>
+                            <td>1</td>
+                            <td>2</td>
+                            <td>-</td>
+                            <td>Oct 01, 2025</td>
+                            <td><button class="action-button-sm">LL</button></td>
+                        </tr>
+                        <!-- Quiz 2 -->
+                        <tr data-quiz-id="quiz2" class="quiz-row">
+                            <td><a href="quiz-results.html?quizId=quiz2">intro</a></td>
+                            <td><span class="status-badge ended">Ended</span></td>
+                            <td>1</td>
+                            <td>1</td>
+                            <td>-</td>
+                            <td>Sep 30, 2025</td>
+                            <td><button class="action-button-sm">LL</button></td>
+                        </tr>
+                        <!-- More quizzes would be dynamically loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/dasboard.js"></script>
+</body>
+</html>

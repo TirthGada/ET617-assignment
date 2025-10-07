@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Learning Platform - Quiz Results</title>
+    <link rel="stylesheet" href="css/Quizresluts.css">
+</head>
+<body class="dark-mode">
+    <header class="navbar">
+        <div class="logo">
+            <img src="https://via.placeholder.com/24" alt="Logo"> Learning Platform
+        </div>
+        <nav class="nav-links">
+            <!-- Dashboard link for navigation back -->
+            <a href="dashboard.html" class="nav-link">✔ Dashboard</a>
+            <span class="nav-link user-name">Aman ▼</span>
+        </nav>
+    </header>
+
+    <main class="quiz-results-container">
+        <div class="page-title">
+            <img src="https://via.placeholder.com/24" alt="Results icon">
+            <h1>jfiewi - Results</h1> <!-- Dynamic quiz name here -->
+        </div>
+
+        <div class="results-grid">
+            <!-- Top Summary Cards -->
+            <div class="top-summary-cards">
+                <div class="summary-card participants-card">
+                    <h4>Participants</h4>
+                    <p>2</p>
+                    <img src="https://via.placeholder.com/30" alt="Participants icon">
+                </div>
+                <div class="summary-card avg-score-card">
+                    <h4>Average Score</h4>
+                    <p>0.5%</p>
+                    <img src="https://via.placeholder.com/30" alt="Trophy icon">
+                </div>
+                <div class="summary-card completion-rate-card">
+                    <h4>Completion Rate</h4>
+                    <p>100.0%</p>
+                    <img src="https://via.placeholder.com/30" alt="Checkmark icon">
+                </div>
+                <div class="summary-card difficult-questions-card">
+                    <h4>Difficult Questions</h4>
+                    <p>0</p>
+                    <img src="https://via.placeholder.com/30" alt="Warning icon">
+                </div>
+            </div>
+
+            <!-- Participant Results Table -->
+            <div class="dashboard-card participant-results-table">
+                <div class="table-header">
+                    <img src="https://via.placeholder.com/20" alt="List icon">
+                    <h3>Participant Results</h3>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>RANK</th>
+                            <th>STUDENT NAME</th>
+                            <th>EMAIL</th>
+                            <th>SCORE</th>
+                            <th>PERCENTAGE</th>
+                            <th>COMPLETED</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="rank-badge gold">🥇</span> 1</td>
+                            <td>pdm</td>
+                            <td>dwm@faoef</td>
+                            <td>1/1</td>
+                            <td>
+                                <div class="percentage-bar-container">
+                                    <div class="percentage-bar red" style="width: 100%;"></div>
+                                </div>
+                                100%
+                            </td>
+                            <td>Oct 01, 04:44</td>
+                        </tr>
+                        <tr>
+                            <td><span class="rank-badge silver">🥈</span> 2</td>
+                            <td>fkna</td>
+                            <td>djiwia@jiwae</td>
+                            <td>0/1</td>
+                            <td>
+                                <div class="percentage-bar-container">
+                                    <div class="percentage-bar grey" style="width: 0%;"></div>
+                                </div>
+                                0%
+                            </td>
+                            <td>Oct 01, 04:44</td>
+                        </tr>
+                        <!-- More participant rows dynamically loaded here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Quiz Summary Box (Right Sidebar) -->
+            <div class="dashboard-card quiz-summary-box">
+                <div class="box-header">
+                    <img src="https://via.placeholder.com/20" alt="Quiz summary icon">
+                    <h4>Quiz Summary</h4>
+                </div>
+                <div class="summary-details">
+                    <p><strong>Status:</strong> <span class="status-badge ended">Ended</span></p>
+                    <p><strong>Started:</strong> Oct 01, 2025 04:42</p>
+                    <p><strong>Ended:</strong> Oct 01, 2025 04:45</p>
+                    <p><strong>Duration:</strong> 3 minutes</p>
+                    <p><strong>Total Questions:</strong> 1</p>
+                </div>
+            </div>
+
+            <!-- Student Feedback Table -->
+            <div class="dashboard-card student-feedback-table">
+                <div class="table-header">
+                    <img src="https://via.placeholder.com/20" alt="Feedback icon">
+                    <h3>Student Feedback</h3>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>STUDENT NAME</th>
+                            <th>FEEDBACK TOPIC</th>
+                            <th>COMMENTS</th>
+                            <th>DATE SUBMITTED</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="stars" data-rating="5">★★★★★ 5/5</span></td>
+                            <td>Course Content</td>
+                            <td>Very helpful and engaging!</td>
+                            <td>Oct 02, 10:30</td>
+                        </tr>
+                        <tr>
+                            <td><span class="stars" data-rating="5">★★★★★ 5/5</span></td>
+                            <td>Instructor Clarity</td>
+                            <td>5/5</td>
+                            <td>Oct 02, 10:30</td>
+                        </tr>
+                        <tr>
+                            <td>fkna</td>
+                            <td><span class="stars" data-rating="4">★★★★☆ 4/5</span></td>
+                            <td>Good explanations, but sometimes fast.</td>
+                            <td>Oct 02, 10:35</td>
+                        </tr>
+                        <tr>
+                            <td>Platform Usability</td>
+                            <td><span class="stars" data-rating="3">★★★☆☆ 3/5</span></td>
+                            <td>A bit chunky on mobile.</td>
+                            <td>Oct 02, 11:40</td>
+                        </tr>
+                        <!-- More feedback rows dynamically loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/Quizresult.js"></script>
+</body>
+</html>
