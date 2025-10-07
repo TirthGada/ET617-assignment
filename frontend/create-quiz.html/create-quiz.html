@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Learning Platform - Create Quiz</title>
+    <link rel="stylesheet" href="css/Create Quiz Page.css">
+</head>
+<body class="dark-mode">
+    <header class="navbar">
+        <div class="logo">
+            <img src="https://via.placeholder.com/24" alt="Logo"> Learning Platform
+        </div>
+        <nav class="nav-links">
+            <!-- For logged-in state -->
+            <a href="dashboard.html" class="nav-link">✔ Dashboard</a>
+            <span class="nav-link user-name">Aman ▼</span>
+        </nav>
+    </header>
+
+    <main class="create-quiz-container">
+        <div class="page-title">
+            <img src="https://via.placeholder.com/24" alt="Quiz icon">
+            <h1>Creating Quiz</h1>
+        </div>
+
+        <div class="create-quiz-card">
+            <h2>Create Quiz</h2>
+            <form id="createQuizForm">
+                <div class="form-group">
+                    <label for="quizTitle">Give your quiz a clear, descriptive title</label>
+                    <input type="text" id="quizTitle" name="quizTitle" placeholder="e.g., Introduction to JavaScript">
+                </div>
+
+                <div class="form-group">
+                    <label for="quizDescription">Description</label>
+                    <textarea id="quizDescription" name="quizDescription" rows="4" placeholder="Provide additional context about the quiz"></textarea>
+                    <small>Optional: Provide additional context about the quiz</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="timeLimit">Time Limit (minutes)</label>
+                    <select id="timeLimit" name="timeLimit">
+                        <option value="10">10</option>
+                        <option value="15">15</option>
+                        <option value="20">20</option>
+                        <option value="30" selected>30</option>
+                        <option value="45">45</option>
+                        <option value="60">60</option>
+                        <option value="90">90</option>
+                        <option value="120">120</option>
+                    </select>
+                    <small>How long students have to complete the quiz</small>
+                </div>
+
+                <button type="submit" class="primary-button create-quiz-button">
+                    <img src="https://via.placeholder.com/16" alt="Checkmark icon"> Create Quiz
+                </button>
+            </form>
+        </div>
+    </main>
+
+    <script src="js/Create Quiz Page.js"></script>
+</body>
+</html>
