@@ -1,11 +1,9 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import FeedbackViewSet, DoubtViewSet, dashboard_summary, dashboard_chart_data
+from .views import dashboard_summary, dashboard_chart_data
 from . import views
 
 router = DefaultRouter()
-router.register(r'feedback', FeedbackViewSet, basename='feedback')
-router.register(r'doubts', DoubtViewSet, basename='doubts')
 
 urlpatterns = [
     path('', views.home, name='home'),
