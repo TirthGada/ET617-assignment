@@ -357,6 +357,8 @@ class PollAnalytics(models.Model):
     response_distribution = models.JSONField(default=dict, help_text="Distribution of responses by option")
     average_rating = models.FloatField(default=0.0, help_text="Average rating for rating polls")
     response_timeline = models.JSONField(default=list, help_text="Response timeline data")
+    word_cloud_data = models.JSONField(default=dict, help_text="Word frequencies for text response polls")
+    word_cloud_generated_at = models.DateTimeField(null=True, blank=True, help_text="When word cloud was last generated")
     generated_at = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):

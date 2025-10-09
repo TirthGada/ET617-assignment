@@ -10,7 +10,7 @@ from django.db.models import Q
 import json
 
 from .models import Course, Content, Quiz, UserProgress, ClickstreamEvent, VideoAnalytics, TeacherProfile, LiveQuiz, QuizQuestion, QuizParticipant, QuizAnswer, StudentAnalysis, QuizAnalytics, SubjectiveAnswer, Poll, PollOption, PollResponse, PollAnalytics
-from .utils import get_client_ip, log_clickstream_event
+from .utils import get_client_ip, log_clickstream_event, generate_word_cloud_data, create_word_cloud_visualization
 from .llm_utils import llm_service
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
@@ -1532,6 +1532,16 @@ def generate_poll_analytics(poll):
             'count': 1
         })
     
+    # Generate word cloud data for text response polls
+    word_cloud_data = {}
+    word_cloud_generated_at = None
+    
+    if poll.poll_type == 'text_response':
+        print(f"🎯 Generating word cloud for text response poll: {poll.title}")
+        text_responses = [response.text_response for response in responses if response.text_response]
+        word_cloud_data = generate_word_cloud_data(text_responses)
+        word_cloud_generated_at = timezone.now()
+    
     # Save analytics
     PollAnalytics.objects.update_or_create(
         poll=poll,
@@ -1539,7 +1549,9 @@ def generate_poll_analytics(poll):
             'total_responses': total_responses,
             'response_distribution': response_distribution,
             'average_rating': average_rating,
-            'response_timeline': response_timeline
+            'response_timeline': response_timeline,
+            'word_cloud_data': word_cloud_data,
+            'word_cloud_generated_at': word_cloud_generated_at
         }
     )
 
@@ -1657,4 +1669,39 @@ def poll_result(request, poll_id):
         'total_responses': total_responses
     }
     
-    return render(request, 'learning_app/poll_result.html', context) 
+    return render(request, 'learning_app/poll_result.html', context)
+
+
+# ============ WORD CLOUD AJAX ENDPOINTS ============
+
+@teacher_required
+@csrf_exempt
+def poll_word_cloud_data(request, poll_id):
+    """Get real-time word cloud data for active poll"""
+    teacher_id = request.session.get('teacher_id')
+    teacher_profile = get_object_or_404(TeacherProfile, id=teacher_id)
+    poll = get_object_or_404(Poll, id=poll_id, teacher=teacher_profile)
+    
+    if request.method == 'GET':
+        # Get current responses
+        responses = poll.responses.all()
+        
+        # Generate word cloud data if this is a text response poll
+        word_cloud_data = {}
+        word_cloud_visualization = {}
+        
+        if poll.poll_type == 'text_response':
+            text_responses = [response.text_response for response in responses if response.text_response]
+            word_cloud_data = generate_word_cloud_data(text_responses)
+            word_cloud_visualization = create_word_cloud_visualization(word_cloud_data)
+        
+        return JsonResponse({
+            'success': True,
+            'poll_type': poll.poll_type,
+            'total_responses': responses.count(),
+            'word_cloud_data': word_cloud_data,
+            'word_cloud_visualization': word_cloud_visualization,
+            'has_word_cloud': poll.poll_type == 'text_response' and bool(word_cloud_data)
+        })
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request method'}) 

@@ -60,6 +60,7 @@ urlpatterns = [
     # Poll option management routes
     path('teacher/poll/<int:poll_id>/add-option/', views.add_poll_option, name='add_poll_option'),
     path('teacher/poll/<int:poll_id>/remove-option/', views.remove_poll_option, name='remove_poll_option'),
+    path('teacher/poll/<int:poll_id>/word-cloud-data/', views.poll_word_cloud_data, name='poll_word_cloud_data'),
     
     # Student poll routes
     path('poll/join/', views.join_poll, name='join_poll'),
