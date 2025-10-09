@@ -1,0 +1,315 @@
+{% extends 'base.html' %}
+
+{% block title %}Poll Results - Learning Platform{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-secondary text-white">
+                <h4 class="mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>Poll Results: {{ poll.title }}
+                </h4>
+            </div>
+            <div class="card-body">
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h3 class="text-primary">{{ responses.count }}</h3>
+                            <p class="text-muted mb-0">Total Responses</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h3 class="text-success">{{ poll.poll_code }}</h3>
+                            <p class="text-muted mb-0">Poll Code</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h3 class="text-info">{{ poll.get_poll_type_display }}</h3>
+                            <p class="text-muted mb-0">Poll Type</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h3 class="text-warning">
+                                {% if poll.started_at and poll.ended_at %}
+                                    {{ poll.started_at|timesince:poll.ended_at }}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </h3>
+                            <p class="text-muted mb-0">Duration</p>
+                        </div>
+                    </div>
+                </div>
+                
+                {% if analytics %}
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Response Analysis</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="resultsChart" height="300"></canvas>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-list me-2"></i>Individual Responses</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if responses %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        {% if not poll.is_anonymous %}
+                                        <th>Student</th>
+                                        {% endif %}
+                                        <th>Response</th>
+                                        <th>Submitted</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for response in responses %}
+                                    <tr>
+                                        {% if not poll.is_anonymous %}
+                                        <td>
+                                            <strong>{{ response.student_name|default:"Anonymous" }}</strong>
+                                            {% if response.student_email %}
+                                                <br><small class="text-muted">{{ response.student_email }}</small>
+                                            {% endif %}
+                                        </td>
+                                        {% endif %}
+                                        <td>
+                                            {% if poll.poll_type == 'rating_scale' %}
+                                                <span class="badge bg-primary">{{ response.rating_value }}/5</span>
+                                            {% elif poll.poll_type == 'text_response' %}
+                                                {{ response.text_response|truncatechars:100 }}
+                                            {% else %}
+                                                {% for option_id in response.selected_options %}
+                                                    {% for option in poll.options.all %}
+                                                        {% if option.id == option_id %}
+                                                            <span class="badge bg-secondary me-1">{{ option.option_text }}</span>
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                {% endfor %}
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <small class="text-muted">{{ response.submitted_at|date:"M d, Y H:i:s" }}</small>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <p class="text-muted text-center">No responses received</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Poll Summary</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row">
+                    <dt class="col-sm-5">Title:</dt>
+                    <dd class="col-sm-7">{{ poll.title }}</dd>
+                    
+                    <dt class="col-sm-5">Type:</dt>
+                    <dd class="col-sm-7">{{ poll.get_poll_type_display }}</dd>
+                    
+                    <dt class="col-sm-5">Status:</dt>
+                    <dd class="col-sm-7">
+                        <span class="badge bg-secondary">Ended</span>
+                    </dd>
+                    
+                    <dt class="col-sm-5">Anonymous:</dt>
+                    <dd class="col-sm-7">
+                        {% if poll.is_anonymous %}
+                            <span class="badge bg-success">Yes</span>
+                        {% else %}
+                            <span class="badge bg-warning">No</span>
+                        {% endif %}
+                    </dd>
+                    
+                    <dt class="col-sm-5">Multiple Responses:</dt>
+                    <dd class="col-sm-7">
+                        {% if poll.allow_multiple_responses %}
+                            <span class="badge bg-success">Allowed</span>
+                        {% else %}
+                            <span class="badge bg-warning">Not Allowed</span>
+                        {% endif %}
+                    </dd>
+                    
+                    <dt class="col-sm-5">Started:</dt>
+                    <dd class="col-sm-7">{{ poll.started_at|date:"M d, Y H:i" }}</dd>
+                    
+                    <dt class="col-sm-5">Ended:</dt>
+                    <dd class="col-sm-7">{{ poll.ended_at|date:"M d, Y H:i" }}</dd>
+                </dl>
+                
+                {% if poll.description %}
+                <hr>
+                <h6>Description:</h6>
+                <p class="text-muted">{{ poll.description }}</p>
+                {% endif %}
+                
+                <div class="d-grid gap-2 mt-3">
+                    <a href="{% url 'teacher_polls' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-1"></i>Back to Polls
+                    </a>
+                    <button onclick="printResults()" class="btn btn-outline-primary">
+                        <i class="fas fa-print me-1"></i>Print Results
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        {% if analytics %}
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Statistics</h5>
+            </div>
+            <div class="card-body">
+                {% if poll.poll_type == 'rating_scale' %}
+                <div class="text-center">
+                    <h3 class="text-warning">{{ analytics.average_rating|floatformat:1 }}/5</h3>
+                    <p class="text-muted">Average Rating</p>
+                </div>
+                {% endif %}
+                
+                <div class="row text-center">
+                    <div class="col-6">
+                        <h5 class="text-primary">{{ analytics.total_responses }}</h5>
+                        <small class="text-muted">Total Responses</small>
+                    </div>
+                    <div class="col-6">
+                        <h5 class="text-success">
+                            {% if poll.started_at and poll.ended_at %}
+                                {{ poll.started_at|timesince:poll.ended_at }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </h5>
+                        <small class="text-muted">Duration</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+let resultsChart;
+
+document.addEventListener('DOMContentLoaded', function() {
+    {% if analytics %}
+    initResultsChart();
+    {% endif %}
+});
+
+{% if analytics %}
+function initResultsChart() {
+    const ctx = document.getElementById('resultsChart').getContext('2d');
+    
+    {% if poll.poll_type in 'single_choice,multiple_choice,yes_no' %}
+    const labels = [];
+    const data = [];
+    const colors = [
+        'rgba(54, 162, 235, 0.8)',
+        'rgba(255, 99, 132, 0.8)',
+        'rgba(255, 205, 86, 0.8)',
+        'rgba(75, 192, 192, 0.8)',
+        'rgba(153, 102, 255, 0.8)'
+    ];
+    
+    const distribution = {{ analytics.response_distribution|safe }};
+    let colorIndex = 0;
+    
+    for (const [optionId, optionData] of Object.entries(distribution)) {
+        labels.push(optionData.option_text);
+        data.push(optionData.count);
+        colorIndex++;
+    }
+    
+    resultsChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: colors.slice(0, labels.length),
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+    {% elif poll.poll_type == 'rating_scale' %}
+    const labels = [];
+    const data = [];
+    
+    const distribution = {{ analytics.response_distribution|safe }};
+    for (let rating = 1; rating <= 5; rating++) {
+        labels.push(rating + ' star' + (rating > 1 ? 's' : ''));
+        data.push(distribution[rating] ? distribution[rating].count : 0);
+    }
+    
+    resultsChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Responses',
+                data: data,
+                backgroundColor: 'rgba(255, 193, 7, 0.8)',
+                borderColor: 'rgba(255, 193, 7, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+    {% endif %}
+}
+{% endif %}
+
+function printResults() {
+    window.print();
+}
+</script>
+{% endblock %}

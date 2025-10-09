@@ -7,4 +7,6 @@ python-decouple==3.8
 PyPDF2==3.0.1
 requests==2.31.0
 wordcloud==1.9.2
-matplotlib==3.7.2 
+matplotlib==3.7.2
+qrcode==7.4.2
+Pillow==10.0.1 

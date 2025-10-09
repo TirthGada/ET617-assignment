@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+
+{% block title %}Create Poll - Learning Platform{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">
+                    <i class="fas fa-plus me-2"></i>Create New Poll
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Poll Title *</label>
+                        <input type="text" class="form-control" id="title" name="title" required>
+                        <div class="form-text">Give your poll a clear, descriptive title</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                        <div class="form-text">Optional: Provide additional context about the poll</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="poll_type" class="form-label">Poll Type *</label>
+                        <select class="form-select" id="poll_type" name="poll_type" required onchange="toggleOptions()">
+                            <option value="">Select poll type</option>
+                            <option value="single_choice">Single Choice</option>
+                            <option value="multiple_choice">Multiple Choice</option>
+                            <option value="text_response">Text Response</option>
+                            <option value="rating_scale">Rating Scale (1-5)</option>
+                            <option value="yes_no">Yes/No</option>
+                        </select>
+                        <div class="form-text">Choose the type of response you want to collect</div>
+                    </div>
+                    
+                    <div id="options-container" style="display: none;">
+                        <div class="mb-3">
+                            <label class="form-label">Options *</label>
+                            <div id="options-list">
+                                <div class="input-group mb-2">
+                                    <input type="text" class="form-control" name="options" placeholder="Option 1">
+                                    <button type="button" class="btn btn-outline-danger" onclick="removeOption(this)">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                                <div class="input-group mb-2">
+                                    <input type="text" class="form-control" name="options" placeholder="Option 2">
+                                    <button type="button" class="btn btn-outline-danger" onclick="removeOption(this)">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="addOption()">
+                                <i class="fas fa-plus me-1"></i>Add Option
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="is_anonymous" name="is_anonymous">
+                                <label class="form-check-label" for="is_anonymous">
+                                    Anonymous Responses
+                                </label>
+                                <div class="form-text">Students won't need to provide their name</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="allow_multiple_responses" name="allow_multiple_responses">
+                                <label class="form-check-label" for="allow_multiple_responses">
+                                    Allow Multiple Responses
+                                </label>
+                                <div class="form-text">Same person can respond multiple times</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{% url 'teacher_polls' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>Back to Polls
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-check me-1"></i>Create Poll
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-body">
+                <h6 class="card-title">
+                    <i class="fas fa-lightbulb me-2 text-warning"></i>What happens next?
+                </h6>
+                <ul class="list-unstyled mb-0">
+                    <li><i class="fas fa-check text-success me-2"></i>Your poll will be created in draft mode</li>
+                    <li><i class="fas fa-check text-success me-2"></i>You can edit options and settings</li>
+                    <li><i class="fas fa-check text-success me-2"></i>Start the poll when ready to collect responses</li>
+                    <li><i class="fas fa-check text-success me-2"></i>Share the poll code or QR code with students</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleOptions() {
+    const pollType = document.getElementById('poll_type').value;
+    const optionsContainer = document.getElementById('options-container');
+    
+    if (pollType === 'single_choice' || pollType === 'multiple_choice') {
+        optionsContainer.style.display = 'block';
+    } else {
+        optionsContainer.style.display = 'none';
+    }
+}
+
+function addOption() {
+    const optionsList = document.getElementById('options-list');
+    const optionCount = optionsList.children.length + 1;
+    
+    const optionDiv = document.createElement('div');
+    optionDiv.className = 'input-group mb-2';
+    optionDiv.innerHTML = `
+        <input type="text" class="form-control" name="options" placeholder="Option ${optionCount}">
+        <button type="button" class="btn btn-outline-danger" onclick="removeOption(this)">
+            <i class="fas fa-trash"></i>
+        </button>
+    `;
+    
+    optionsList.appendChild(optionDiv);
+}
+
+function removeOption(button) {
+    const optionsList = document.getElementById('options-list');
+    if (optionsList.children.length > 1) {
+        button.parentElement.remove();
+    }
+}
+</script>
+{% endblock %}

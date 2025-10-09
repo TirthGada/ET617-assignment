@@ -45,4 +45,25 @@ urlpatterns = [
     path('quiz/<int:quiz_id>/submit/', views.submit_quiz, name='submit_quiz_new'),
     path('quiz/<int:quiz_id>/result/', views.quiz_result, name='quiz_result'),
     path('quiz/<int:quiz_id>/help/', views.student_help_content, name='student_help_content'),
+    
+    # ============ POLL SYSTEM URLS ============
+    
+    # Teacher poll routes
+    path('teacher/polls/', views.teacher_polls, name='teacher_polls'),
+    path('teacher/create-poll/', views.create_poll, name='create_poll'),
+    path('teacher/poll/<int:poll_id>/edit/', views.edit_poll, name='edit_poll'),
+    path('teacher/poll/<int:poll_id>/start/', views.start_poll, name='start_poll'),
+    path('teacher/poll/<int:poll_id>/monitor/', views.poll_monitor, name='poll_monitor'),
+    path('teacher/poll/<int:poll_id>/end/', views.end_poll, name='end_poll'),
+    path('teacher/poll/<int:poll_id>/results/', views.poll_results, name='poll_results'),
+    
+    # Poll option management routes
+    path('teacher/poll/<int:poll_id>/add-option/', views.add_poll_option, name='add_poll_option'),
+    path('teacher/poll/<int:poll_id>/remove-option/', views.remove_poll_option, name='remove_poll_option'),
+    
+    # Student poll routes
+    path('poll/join/', views.join_poll, name='join_poll'),
+    path('poll/<int:poll_id>/take/', views.take_poll, name='take_poll'),
+    path('poll/<int:poll_id>/result/', views.poll_result, name='poll_result'),
+    path('poll/<str:poll_code>/', views.take_poll, name='take_poll_by_code'),
 ] 

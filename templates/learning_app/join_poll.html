@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+{% block title %}Join Poll - Learning Platform{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white text-center">
+                <h4 class="mb-0">
+                    <i class="fas fa-poll me-2"></i>Join a Poll
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-4">
+                        <label for="poll_code" class="form-label">Enter Poll Code</label>
+                        <input type="text" class="form-control form-control-lg text-center" 
+                               id="poll_code" name="poll_code" 
+                               placeholder="Enter 6-character code" 
+                               maxlength="6" required
+                               style="font-size: 1.5rem; letter-spacing: 0.2em;">
+                        <div class="form-text">Ask your teacher for the poll code</div>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-sign-in-alt me-2"></i>Join Poll
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-body">
+                <h6 class="card-title">
+                    <i class="fas fa-info-circle me-2 text-info"></i>How to join a poll
+                </h6>
+                <ol class="mb-0">
+                    <li>Get the poll code from your teacher</li>
+                    <li>Enter the 6-character code above</li>
+                    <li>Click "Join Poll" to participate</li>
+                    <li>Answer the poll questions</li>
+                    <li>View results when the poll ends</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.form-control-lg {
+    text-transform: uppercase;
+}
+
+.form-control-lg:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const pollCodeInput = document.getElementById('poll_code');
+    
+    pollCodeInput.addEventListener('input', function() {
+        this.value = this.value.toUpperCase();
+    });
+    
+    pollCodeInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            this.form.submit();
+        }
+    });
+});
+</script>
+{% endblock %}
