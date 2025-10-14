@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Learning Platform - Teachers Access</title>
+    <link rel="stylesheet" href="..\css\style.css\Index.css">
+</head>
+<body class="dark-mode">
+    <header class="navbar">
+        <div class="logo">
+            <img src="https://via.placeholder.com/24" alt="Logo"> Learning Platform
+        </div>
+        <nav class="nav-links">
+            <a href="#" class="nav-link">Log in</a>
+            <a href="#" class="nav-link">Sign up</a>
+        </nav>
+    </header>
+
+    <main class="auth-container">
+        <div class="auth-card">
+            <h2>Teachers Access</h2>
+            <div class="auth-tabs">
+                <button class="tab-button active" id="loginTab">Log in</button>
+                <button class="tab-button" id="registerTab">Register</button>
+            </div>
+
+            <form id="loginForm" class="auth-form active">
+                <input type="text" placeholder="Email / Username">
+                <input type="password" placeholder="Password">
+                <button type="submit" class="primary-button">Log in</button>
+                <p class="verification-text">Use your institution email for verification</p>
+            </form>
+
+            <form id="registerForm" class="auth-form">
+                <input type="text" placeholder="Email / Username">
+                <input type="password" placeholder="Password">
+                <input type="password" placeholder="Verify Password">
+                <button type="submit" class="primary-button">Register</button>
+                <p class="verification-text">Use your institution email for registration</p>
+            </form>
+
+            <div class="auth-illustration">
+                <!-- Illustration will be handled by CSS background or an img tag -->
+                <img src="https://via.placeholder.com/150x100" alt="Teacher illustration">
+            </div>
+        </div>
+    </main>
+
+    <script src="..\js\script.js\Index.js"></script>
+</body>
+</html>
