@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+
+{% block title %}My Polls - Teacher Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-poll me-2"></i>My Polls</h2>
+    <div>
+        <a href="{% url 'create_poll' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i>Create New Poll
+        </a>
+        <a href="{% url 'teacher_dashboard' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-list me-2"></i>Your Polls</h5>
+    </div>
+    <div class="card-body">
+        {% if polls %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Status</th>
+                            <th>Options</th>
+                            <th>Responses</th>
+                            <th>Poll Code</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for poll in polls %}
+                        <tr>
+                            <td>
+                                <strong>{{ poll.title }}</strong>
+                                {% if poll.description %}
+                                <br><small class="text-muted">{{ poll.description|truncatechars:50 }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if poll.status == 'draft' %}
+                                    <span class="badge bg-secondary">Draft</span>
+                                {% elif poll.status == 'active' %}
+                                    <span class="badge bg-success">Active</span>
+                                {% else %}
+                                    <span class="badge bg-dark">Ended</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ poll.options.count }}</td>
+                            <td>{{ poll.responses.count }}</td>
+                            <td>
+                                {% if poll.status == 'active' %}
+                                    <code class="bg-light p-1 rounded">{{ poll.poll_code }}</code>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ poll.created_at|date:"M d, Y" }}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    {% if poll.status == 'draft' %}
+                                        <a href="{% url 'edit_poll' poll.id %}" class="btn btn-outline-primary" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        {% if poll.options.count >= 2 %}
+                                        <a href="{% url 'start_poll' poll.id %}" class="btn btn-outline-success" title="Start">
+                                            <i class="fas fa-play"></i>
+                                        </a>
+                                        {% endif %}
+                                    {% elif poll.status == 'active' %}
+                                        <a href="{% url 'poll_monitor' poll.id %}" class="btn btn-outline-info" title="Monitor">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{% url 'end_poll' poll.id %}" class="btn btn-outline-danger" title="End">
+                                            <i class="fas fa-stop"></i>
+                                        </a>
+                                    {% else %}
+                                        <a href="{% url 'poll_results' poll.id %}" class="btn btn-outline-secondary" title="Results">
+                                            <i class="fas fa-chart-bar"></i>
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-poll fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">No polls yet</h5>
+                <p class="text-muted">Create your first poll to get started!</p>
+                <a href="{% url 'create_poll' %}" class="btn btn-primary">
+                    <i class="fas fa-plus me-1"></i>Create Poll
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
