@@ -4,23 +4,184 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Learning Platform - Create Quiz</title>
-    <link rel="stylesheet" href="css/Create Quiz Page.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: #000;
+            color: #fff;
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background-color: #1e3a8a;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .logo::before {
+            content: "🎓";
+            font-size: 1.5rem;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .nav-link {
+            color: #fff;
+            text-decoration: none;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        .create-quiz-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .page-title {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 2rem;
+            font-size: 1.75rem;
+        }
+
+        .page-title::before {
+            content: "📋";
+            font-size: 2rem;
+        }
+
+        .create-quiz-card {
+            background-color: #f5f5f5;
+            border-radius: 1.5rem;
+            padding: 2.5rem;
+            color: #000;
+        }
+
+        .create-quiz-card h2 {
+            font-size: 1.75rem;
+            margin-bottom: 2rem;
+            font-weight: 600;
+        }
+
+        .form-group {
+            margin-bottom: 2rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 1.25rem;
+            font-weight: 500;
+            margin-bottom: 0.75rem;
+        }
+
+        .form-group input[type="text"],
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 1rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            background-color: #e5e7eb;
+            color: #000;
+            font-family: inherit;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .form-group select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            background-size: 1.5rem;
+            padding-right: 3rem;
+            cursor: pointer;
+        }
+
+        .form-group small {
+            display: block;
+            margin-top: 0.5rem;
+            font-size: 0.875rem;
+            color: #4b5563;
+        }
+
+        .form-group input::placeholder,
+        .form-group textarea::placeholder {
+            color: #9ca3af;
+        }
+
+        .create-quiz-button {
+            background-color: #fbbf24;
+            color: #000;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 0.5rem;
+            font-size: 1.125rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-left: auto;
+            transition: transform 0.2s, background-color 0.2s;
+        }
+
+        .create-quiz-button::before {
+            content: "✓";
+            font-size: 1.25rem;
+        }
+
+        .create-quiz-button:hover {
+            background-color: #f59e0b;
+            transform: translateY(-2px);
+        }
+
+        .create-quiz-button:active {
+            transform: translateY(0);
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+    </style>
 </head>
-<body class="dark-mode">
+<body>
     <header class="navbar">
-        <div class="logo">
-            <img src="https://via.placeholder.com/24" alt="Logo"> Learning Platform
-        </div>
+        <div class="logo">Learning Platform</div>
         <nav class="nav-links">
-            <!-- For logged-in state -->
-            <a href="dashboard.html" class="nav-link">✔ Dashboard</a>
-            <span class="nav-link user-name">Aman ▼</span>
+            <a href="dashboard.html" class="nav-link">Log in</a>
+            <a href="signup.html" class="nav-link">Sign up</a>
         </nav>
     </header>
 
     <main class="create-quiz-container">
         <div class="page-title">
-            <img src="https://via.placeholder.com/24" alt="Quiz icon">
             <h1>Creating Quiz</h1>
         </div>
 
@@ -28,19 +189,20 @@
             <h2>Create Quiz</h2>
             <form id="createQuizForm">
                 <div class="form-group">
-                    <label for="quizTitle">Give your quiz a clear, descriptive title</label>
-                    <input type="text" id="quizTitle" name="quizTitle" placeholder="e.g., Introduction to JavaScript">
+                    <input type="text" id="quizTitle" name="quizTitle" placeholder="">
+                    <small>Give your quiz a clear, descriptive title</small>
                 </div>
 
                 <div class="form-group">
                     <label for="quizDescription">Description</label>
-                    <textarea id="quizDescription" name="quizDescription" rows="4" placeholder="Provide additional context about the quiz"></textarea>
+                    <textarea id="quizDescription" name="quizDescription" placeholder=""></textarea>
                     <small>Optional: Provide additional context about the quiz</small>
                 </div>
 
                 <div class="form-group">
                     <label for="timeLimit">Time Limit (minutes)</label>
                     <select id="timeLimit" name="timeLimit">
+                        <option value="5">5</option>
                         <option value="10">10</option>
                         <option value="15">15</option>
                         <option value="20">20</option>
@@ -53,13 +215,32 @@
                     <small>How long students have to complete the quiz</small>
                 </div>
 
-                <button type="submit" class="primary-button create-quiz-button">
-                    <img src="https://via.placeholder.com/16" alt="Checkmark icon"> Create Quiz
-                </button>
+                <button type="submit" class="create-quiz-button">Create Quiz</button>
             </form>
         </div>
     </main>
 
-    <script src="js/Create Quiz Page.js"></script>
+    <script>
+        document.getElementById('createQuizForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const quizTitle = document.getElementById('quizTitle').value;
+            const quizDescription = document.getElementById('quizDescription').value;
+            const timeLimit = document.getElementById('timeLimit').value;
+            
+            if (!quizTitle.trim()) {
+                alert('Please enter a quiz title');
+                return;
+            }
+            
+            console.log('Quiz Created:', {
+                title: quizTitle,
+                description: quizDescription,
+                timeLimit: timeLimit
+            });
+            
+            alert('Quiz created successfully!');
+        });
+    </script>
 </body>
 </html>
