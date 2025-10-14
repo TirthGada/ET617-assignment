@@ -4,24 +4,327 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Learning Platform - Quiz Results</title>
-    <link rel="stylesheet" href="css/Quizresluts.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: #000;
+            color: #fff;
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background-color: #1e3a8a;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .logo::before {
+            content: "🎓";
+            font-size: 1.5rem;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .nav-link {
+            color: #fff;
+            text-decoration: none;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        .active-nav-link::before {
+            content: "✓ ";
+        }
+
+        .quiz-results-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .page-title {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 2rem;
+            font-size: 1.75rem;
+        }
+
+        .page-title::before {
+            content: "📋";
+            font-size: 2rem;
+        }
+
+        .results-grid {
+            display: grid;
+            gap: 1.5rem;
+            grid-template-columns: 1fr 350px;
+        }
+
+        .top-summary-cards {
+            grid-column: 1 / -1;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+        }
+
+        .summary-card {
+            padding: 2rem;
+            border-radius: 1rem;
+            position: relative;
+            color: #000;
+        }
+
+        .summary-card h4 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+        }
+
+        .summary-card p {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .summary-card::after {
+            position: absolute;
+            right: 1.5rem;
+            bottom: 1.5rem;
+            font-size: 2rem;
+        }
+
+        .participants-card {
+            background-color: #fbbf24;
+        }
+
+        .participants-card::after {
+            content: "👥";
+        }
+
+        .avg-score-card {
+            background-color: #5eead4;
+        }
+
+        .avg-score-card::after {
+            content: "🏆";
+        }
+
+        .completion-rate-card {
+            background-color: #fef08a;
+        }
+
+        .completion-rate-card::after {
+            content: "✓";
+            background-color: #000;
+            color: #fef08a;
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .difficult-questions-card {
+            background-color: #34d399;
+        }
+
+        .difficult-questions-card::after {
+            content: "⚠";
+            background-color: #000;
+            color: #34d399;
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .dashboard-card {
+            background-color: #fff;
+            color: #000;
+            padding: 1.5rem;
+            border-radius: 1rem;
+        }
+
+        .participant-results-table {
+            grid-column: 1;
+        }
+
+        .quiz-summary-box {
+            grid-column: 2;
+            grid-row: 2;
+        }
+
+        .student-feedback-table {
+            grid-column: 1 / -1;
+        }
+
+        .table-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+        }
+
+        .table-header::before {
+            content: "☰";
+            font-size: 1.25rem;
+        }
+
+        .box-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+        }
+
+        .box-header::before {
+            content: "ℹ";
+            background-color: #000;
+            color: #fff;
+            width: 1.5rem;
+            height: 1.5rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead th {
+            text-align: left;
+            padding: 1rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #666;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        tbody td {
+            padding: 1rem;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        tbody tr:hover {
+            background-color: #f9fafb;
+        }
+
+        .rank-badge {
+            font-size: 1.25rem;
+            margin-right: 0.25rem;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            background-color: #000;
+            color: #fff;
+        }
+
+        .percentage-bar-container {
+            display: inline-block;
+            width: 100px;
+            height: 8px;
+            background-color: #e5e7eb;
+            border-radius: 4px;
+            margin-right: 0.5rem;
+            vertical-align: middle;
+        }
+
+        .percentage-bar {
+            height: 100%;
+            border-radius: 4px;
+        }
+
+        .percentage-bar.red {
+            background-color: #ef4444;
+        }
+
+        .percentage-bar.grey {
+            background-color: #d1d5db;
+        }
+
+        .summary-details {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .summary-details p {
+            font-size: 0.875rem;
+        }
+
+        .summary-details strong {
+            font-weight: 600;
+        }
+
+        .stars {
+            color: #fbbf24;
+            font-size: 1rem;
+        }
+
+        @media (max-width: 1024px) {
+            .results-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .quiz-summary-box {
+                grid-column: 1;
+                grid-row: auto;
+            }
+
+            .top-summary-cards {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
 </head>
-<body class="dark-mode">
+<body>
     <header class="navbar">
-        <div class="logo">
-            <img src="https://via.placeholder.com/24" alt="Logo"> Learning Platform
-        </div>
+        <div class="logo">Learning Platform</div>
         <nav class="nav-links">
-            <!-- Dashboard link for navigation back -->
-            <a href="dashboard.html" class="nav-link">✔ Dashboard</a>
+            <a href="dashboard.html" class="nav-link active-nav-link">Dashboard</a>
             <span class="nav-link user-name">Aman ▼</span>
         </nav>
     </header>
 
     <main class="quiz-results-container">
         <div class="page-title">
-            <img src="https://via.placeholder.com/24" alt="Results icon">
-            <h1>jfiewi - Results</h1> <!-- Dynamic quiz name here -->
+            <h1>jfewi - Results</h1>
         </div>
 
         <div class="results-grid">
@@ -30,29 +333,24 @@
                 <div class="summary-card participants-card">
                     <h4>Participants</h4>
                     <p>2</p>
-                    <img src="https://via.placeholder.com/30" alt="Participants icon">
                 </div>
                 <div class="summary-card avg-score-card">
                     <h4>Average Score</h4>
                     <p>0.5%</p>
-                    <img src="https://via.placeholder.com/30" alt="Trophy icon">
                 </div>
                 <div class="summary-card completion-rate-card">
                     <h4>Completion Rate</h4>
                     <p>100.0%</p>
-                    <img src="https://via.placeholder.com/30" alt="Checkmark icon">
                 </div>
                 <div class="summary-card difficult-questions-card">
                     <h4>Difficult Questions</h4>
                     <p>0</p>
-                    <img src="https://via.placeholder.com/30" alt="Warning icon">
                 </div>
             </div>
 
             <!-- Participant Results Table -->
             <div class="dashboard-card participant-results-table">
                 <div class="table-header">
-                    <img src="https://via.placeholder.com/20" alt="List icon">
                     <h3>Participant Results</h3>
                 </div>
                 <table>
@@ -68,7 +366,7 @@
                     </thead>
                     <tbody>
                         <tr>
-                            <td><span class="rank-badge gold">🥇</span> 1</td>
+                            <td><span class="rank-badge">🥇</span>1</td>
                             <td>pdm</td>
                             <td>dwm@faoef</td>
                             <td>1/1</td>
@@ -81,9 +379,9 @@
                             <td>Oct 01, 04:44</td>
                         </tr>
                         <tr>
-                            <td><span class="rank-badge silver">🥈</span> 2</td>
+                            <td><span class="rank-badge">🥈</span>2</td>
                             <td>fkna</td>
-                            <td>djiwia@jiwae</td>
+                            <td>djwia@jiwae</td>
                             <td>0/1</td>
                             <td>
                                 <div class="percentage-bar-container">
@@ -93,19 +391,17 @@
                             </td>
                             <td>Oct 01, 04:44</td>
                         </tr>
-                        <!-- More participant rows dynamically loaded here -->
                     </tbody>
                 </table>
             </div>
 
-            <!-- Quiz Summary Box (Right Sidebar) -->
+            <!-- Quiz Summary Box -->
             <div class="dashboard-card quiz-summary-box">
                 <div class="box-header">
-                    <img src="https://via.placeholder.com/20" alt="Quiz summary icon">
                     <h4>Quiz Summary</h4>
                 </div>
                 <div class="summary-details">
-                    <p><strong>Status:</strong> <span class="status-badge ended">Ended</span></p>
+                    <p><strong>Status:</strong> <span class="status-badge">Ended</span></p>
                     <p><strong>Started:</strong> Oct 01, 2025 04:42</p>
                     <p><strong>Ended:</strong> Oct 01, 2025 04:45</p>
                     <p><strong>Duration:</strong> 3 minutes</p>
@@ -116,7 +412,6 @@
             <!-- Student Feedback Table -->
             <div class="dashboard-card student-feedback-table">
                 <div class="table-header">
-                    <img src="https://via.placeholder.com/20" alt="Feedback icon">
                     <h3>Student Feedback</h3>
                 </div>
                 <table>
@@ -124,42 +419,52 @@
                         <tr>
                             <th>STUDENT NAME</th>
                             <th>FEEDBACK TOPIC</th>
+                            <th>RATINICK TOPIC</th>
                             <th>COMMENTS</th>
-                            <th>DATE SUBMITTED</th>
+                            <th>DATE SUBL UMITTIED</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
-                            <td><span class="stars" data-rating="5">★★★★★ 5/5</span></td>
+                            <td><span class="stars">★★★★★</span> 5/5</td>
                             <td>Course Content</td>
                             <td>Very helpful and engaging!</td>
-                            <td>Oct 02, 10:30</td>
+                            <td></td>
+                            <td>Oct 10:30</td>
                         </tr>
                         <tr>
-                            <td><span class="stars" data-rating="5">★★★★★ 5/5</span></td>
+                            <td><span class="stars">★★★★★</span> 5/5</td>
                             <td>Instructor Clarity</td>
                             <td>5/5</td>
+                            <td></td>
                             <td>Oct 02, 10:30</td>
                         </tr>
                         <tr>
                             <td>fkna</td>
-                            <td><span class="stars" data-rating="4">★★★★☆ 4/5</span></td>
+                            <td><span class="stars">★★★★☆</span> 4/5</td>
                             <td>Good explanations, but sometimes fast.</td>
+                            <td></td>
                             <td>Oct 02, 10:35</td>
                         </tr>
                         <tr>
                             <td>Platform Usability</td>
-                            <td><span class="stars" data-rating="3">★★★☆☆ 3/5</span></td>
-                            <td>A bit chunky on mobile.</td>
-                            <td>Oct 02, 11:40</td>
+                            <td><span class="stars">★★★☆☆</span> 3/5</td>
+                            <td>A bit clunky on mobile.</td>
+                            <td></td>
+                            <td>Oct 02, 11:40 +2</td>
                         </tr>
-                        <!-- More feedback rows dynamically loaded here -->
                     </tbody>
                 </table>
             </div>
         </div>
     </main>
 
-    <script src="js/Quizresult.js"></script>
+    <script>
+        // Initialize page
+        const urlParams = new URLSearchParams(window.location.search);
+        const quizId = urlParams.get('quizId');
+        
+        console.log('Quiz Results loaded for:', quizId);
+    </script>
 </body>
 </html>
