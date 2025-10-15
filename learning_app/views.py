@@ -12,7 +12,7 @@ from django.utils import timezone
 from django.db.models import Q, Avg, Count
 import json
 
-from .models import Course, Content, Quiz, UserProgress, ClickstreamEvent, VideoAnalytics, TeacherProfile, LiveQuiz, QuizQuestion, QuizParticipant, QuizAnswer, StudentAnalysis, QuizAnalytics, Feedback, Doubt, Poll, PollOption, PollResponse, PollAnalytics
+from .models import Course, Content, Quiz, UserProgress, ClickstreamEvent, VideoAnalytics, TeacherProfile, LiveQuiz, QuizQuestion, QuizParticipant, QuizAnswer, StudentAnalysis, QuizAnalytics, Feedback, Doubt
 from .utils import get_client_ip, log_clickstream_event, generate_word_cloud_data, create_word_cloud_visualization
 from .serializers import FeedbackSerializer, DoubtSerializer
 from .llm_utils import llm_service
