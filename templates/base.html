@@ -29,12 +29,7 @@
                             <i class="fas fa-play-circle me-1"></i>Join Quiz
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'join_poll' %}">
-                            <i class="fas fa-poll me-1"></i>Join Poll
-                        </a>
-                    </li>
-                    
+                   
                     {% if request.session.teacher_id %}
                         <!-- Teacher Navigation -->
                         <li class="nav-item">
@@ -50,13 +45,7 @@
                                 <li><a class="dropdown-item" href="{% url 'create_quiz' %}">
                                     <i class="fas fa-plus me-1"></i>Create Quiz
                                 </a></li>
-                                <li><a class="dropdown-item" href="{% url 'teacher_polls' %}">
-                                    <i class="fas fa-poll me-1"></i>My Polls
-                                </a></li>
-                                <li><a class="dropdown-item" href="{% url 'create_poll' %}">
-                                    <i class="fas fa-plus me-1"></i>Create Poll
-                                </a></li>
-                                <li><hr class="dropdown-divider"></li>
+                            <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="#" onclick="logoutTeacher()">
                                     <i class="fas fa-sign-out-alt me-1"></i>Logout
                                 </a></li>
