@@ -247,62 +247,81 @@
 
 <style>
 .word-cloud-container {
-    min-height: 300px;
-    max-height: 400px;
+    min-height: 400px;
+    max-height: 500px;
     overflow-y: auto;
-    padding: 20px;
-    border: 2px dashed #dee2e6;
-    border-radius: 10px;
-    background-color: #f8f9fa;
+    padding: 30px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     text-align: center;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    align-content: flex-start;
 }
 
 .word-cloud-word {
     display: inline-block;
-    margin: 5px;
-    padding: 2px 8px;
-    background: linear-gradient(45deg, #007bff, #6610f2);
+    margin: 10px 15px;
+    padding: 10px 20px;
     color: white;
-    border-radius: 15px;
+    border-radius: 50px;
     cursor: pointer;
-    transition: all 0.3s ease;
-    font-weight: 500;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    font-weight: 600;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    position: relative;
+    overflow: hidden;
+    transform-origin: center;
+}
+
+.word-cloud-word::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s;
+}
+
+.word-cloud-word:hover::before {
+    left: 100%;
 }
 
 .word-cloud-word:hover {
-    transform: scale(1.1);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    transform: scale(1.15) rotate(2deg);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
     z-index: 10;
     position: relative;
 }
 
-.word-cloud-word:nth-child(odd) {
-    background: linear-gradient(45deg, #28a745, #20c997);
-}
-
-.word-cloud-word:nth-child(3n) {
-    background: linear-gradient(45deg, #dc3545, #fd7e14);
-}
-
-.word-cloud-word:nth-child(4n) {
-    background: linear-gradient(45deg, #6f42c1, #e83e8c);
-}
-
-.word-cloud-word:nth-child(5n) {
-    background: linear-gradient(45deg, #17a2b8, #6c757d);
-}
+/* Mentimeter-style color palette based on prominence */
+.word-cloud-word.prominence-1 { background: linear-gradient(45deg, #ff6b6b, #ff8e8e); }
+.word-cloud-word.prominence-2 { background: linear-gradient(45deg, #4ecdc4, #88d8d0); }
+.word-cloud-word.prominence-3 { background: linear-gradient(45deg, #45b7d1, #6a9eff); }
+.word-cloud-word.prominence-4 { background: linear-gradient(45deg, #96ceb4, #b8e9d4); }
+.word-cloud-word.prominence-5 { background: linear-gradient(45deg, #feca57, #ff9ff3); }
+.word-cloud-word.prominence-6 { background: linear-gradient(45deg, #1dd1a1, #10ac84); }
+.word-cloud-word.prominence-7 { background: linear-gradient(45deg, #54a0ff, #2e86de); }
+.word-cloud-word.prominence-8 { background: linear-gradient(45deg, #ff9f43, #ee5a24); }
+.word-cloud-word.prominence-9 { background: linear-gradient(45deg, #c8d6e5, #0abde3); }
+.word-cloud-word.prominence-10 { background: linear-gradient(45deg, #ff9ff3, #f368e0); }
 
 @media (max-width: 768px) {
     .word-cloud-container {
-        min-height: 200px;
-        max-height: 300px;
-        padding: 15px;
+        min-height: 300px;
+        max-height: 400px;
+        padding: 20px;
     }
     
     .word-cloud-word {
-        margin: 3px;
-        padding: 1px 6px;
+        margin: 8px 12px;
+        padding: 8px 16px;
         font-size: 14px !important;
     }
 }
@@ -421,46 +440,60 @@ function renderFinalWordCloud() {
         return;
     }
     
-    // Create word cloud visualization data
+    // Use the enhanced visualization data from the backend
+    // Create word cloud visualization data with Mentimeter-style formatting
     const visualizationData = {
         words: Object.entries(wordCloudData).map(([word, frequency]) => ({
             text: word,
             frequency: frequency,
-            size: Math.max(12, Math.min(48, 12 + (frequency * 2))),
-            percentage: 0
+            size: Math.max(16, Math.min(72, 16 + (frequency * 3))),
+            percentage: 0,
+            prominence: Math.round((frequency / Math.max(...Object.values(wordCloudData))) * 100),
+            rank: 0
         })).sort((a, b) => b.frequency - a.frequency).slice(0, 30),
         total_words: Object.values(wordCloudData).reduce((sum, freq) => sum + freq, 0),
-        unique_words: Object.keys(wordCloudData).length
+        unique_words: Object.keys(wordCloudData).length,
+        max_frequency: Math.max(...Object.values(wordCloudData))
     };
     
-    // Calculate percentages
-    visualizationData.words.forEach(word => {
+    // Calculate percentages and add prominence classes
+    visualizationData.words.forEach((word, index) => {
         word.percentage = ((word.frequency / visualizationData.total_words) * 100).toFixed(1);
+        word.rank = index + 1;
+        // Assign prominence category (1-10) based on rank
+        word.prominence_category = Math.max(1, Math.min(10, Math.ceil((word.rank / visualizationData.words.length) * 10)));
     });
     
     // Clear container
     container.innerHTML = '';
     
-    // Create word elements
+    // Create word elements with Mentimeter-style enhancements
     visualizationData.words.forEach(wordData => {
         const wordElement = document.createElement('span');
         wordElement.className = 'word-cloud-word';
+        
+        // Add prominence class for styling
+        const prominenceClass = Math.max(1, Math.min(10, Math.ceil((wordData.prominence / 10))));
+        wordElement.classList.add(`prominence-${prominenceClass}`);
+        
         wordElement.textContent = wordData.text;
         wordElement.style.fontSize = wordData.size + 'px';
-        wordElement.style.margin = '8px';
+        wordElement.style.margin = '10px 15px';
         wordElement.style.display = 'inline-block';
         wordElement.style.cursor = 'pointer';
-        wordElement.style.transition = 'all 0.3s ease';
+        wordElement.style.transition = 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
         
-        // Add hover effect
+        // Add hover effect with rotation
         wordElement.addEventListener('mouseenter', function() {
-            this.style.transform = 'scale(1.15)';
+            this.style.transform = 'scale(1.15) rotate(2deg)';
             this.style.zIndex = '10';
+            this.style.boxShadow = '0 8px 25px rgba(0,0,0,0.3)';
         });
         
         wordElement.addEventListener('mouseleave', function() {
-            this.style.transform = 'scale(1)';
+            this.style.transform = 'scale(1) rotate(0deg)';
             this.style.zIndex = '1';
+            this.style.boxShadow = '0 4px 15px rgba(0,0,0,0.2)';
         });
         
         // Add click event to show frequency

@@ -15,49 +15,54 @@
                 <form method="post">
                     {% csrf_token %}
                     <div class="mb-3">
-                        <label for="title" class="form-label">Poll Title *</label>
-                        <input type="text" class="form-control" id="title" name="title" required>
-                        <div class="form-text">Give your poll a clear, descriptive title</div>
+                        <label for="title" class="form-label">Poll Title / Main Question *</label>
+                        <input type="text" class="form-control" id="title" name="title" required placeholder="e.g., What topics would you like to learn more about?">
+                        <div class="form-text">This is the main question or topic for your poll</div>
                     </div>
                     
                     <div class="mb-3">
-                        <label for="description" class="form-label">Description</label>
-                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
-                        <div class="form-text">Optional: Provide additional context about the poll</div>
+                        <label for="description" class="form-label">Additional Instructions</label>
+                        <textarea class="form-control" id="description" name="description" rows="3" placeholder="e.g., Please select all that apply or share your thoughts below..."></textarea>
+                        <div class="form-text">Provide additional context or instructions for respondents</div>
                     </div>
                     
                     <div class="mb-3">
                         <label for="poll_type" class="form-label">Poll Type *</label>
                         <select class="form-select" id="poll_type" name="poll_type" required onchange="toggleOptions()">
                             <option value="">Select poll type</option>
-                            <option value="single_choice">Single Choice</option>
-                            <option value="multiple_choice">Multiple Choice</option>
-                            <option value="text_response">Text Response</option>
-                            <option value="rating_scale">Rating Scale (1-5)</option>
-                            <option value="yes_no">Yes/No</option>
+                            <option value="single_choice">Single Choice - Respondents select one option</option>
+                            <option value="multiple_choice">Multiple Choice - Respondents can select multiple options</option>
+                            <option value="text_response">Text Response - Respondents type their own answers</option>
+                            <option value="rating_scale">Rating Scale (1-5) - Respondents rate on a scale</option>
+                            <option value="yes_no">Yes/No - Simple yes/no question</option>
                         </select>
                         <div class="form-text">Choose the type of response you want to collect</div>
                     </div>
                     
                     <div id="options-container" style="display: none;">
                         <div class="mb-3">
-                            <label class="form-label">Options *</label>
+                            <label class="form-label">Response Options / Questions *</label>
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-1"></i>
+                                For choice-based polls, enter the options or questions that respondents can select from.
+                                For example: "Python Programming", "Web Development", "Data Science", etc.
+                            </div>
                             <div id="options-list">
                                 <div class="input-group mb-2">
-                                    <input type="text" class="form-control" name="options" placeholder="Option 1">
+                                    <input type="text" class="form-control" name="options" placeholder="Option 1 (e.g., Python Programming)">
                                     <button type="button" class="btn btn-outline-danger" onclick="removeOption(this)">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </div>
                                 <div class="input-group mb-2">
-                                    <input type="text" class="form-control" name="options" placeholder="Option 2">
+                                    <input type="text" class="form-control" name="options" placeholder="Option 2 (e.g., Web Development)">
                                     <button type="button" class="btn btn-outline-danger" onclick="removeOption(this)">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </div>
                             </div>
-                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="addOption()">
-                                <i class="fas fa-plus me-1"></i>Add Option
+                            <button type="button" class="btn btn-outline-primary btn-sm mt-2" onclick="addOption()">
+                                <i class="fas fa-plus me-1"></i>Add Another Option
                             </button>
                         </div>
                     </div>
@@ -98,7 +103,31 @@
         <div class="card mt-4">
             <div class="card-body">
                 <h6 class="card-title">
-                    <i class="fas fa-lightbulb me-2 text-warning"></i>What happens next?
+                    <i class="fas fa-lightbulb me-2 text-warning"></i>How to frame your poll questions and options
+                </h6>
+                <div class="mb-3">
+                    <h6>Examples:</h6>
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2">
+                            <strong>Single Choice:</strong><br>
+                            <em>Question:</em> "Which programming language are you most interested in learning?"<br>
+                            <em>Options:</em> "Python", "JavaScript", "Java", "C++"
+                        </li>
+                        <li class="mb-2">
+                            <strong>Multiple Choice:</strong><br>
+                            <em>Question:</em> "Which topics would you like covered in the next workshop?"<br>
+                            <em>Options:</em> "Web Development", "Mobile Apps", "Data Analysis", "AI/ML"
+                        </li>
+                        <li class="mb-2">
+                            <strong>Text Response:</strong><br>
+                            <em>Question:</em> "What specific skills would you like to develop in the next semester?"<br>
+                            <em>Instructions:</em> "Please share your thoughts in your own words..."
+                        </li>
+                    </ul>
+                </div>
+                <hr>
+                <h6 class="card-title">
+                    <i class="fas fa-info-circle me-2 text-info"></i>What happens next?
                 </h6>
                 <ul class="list-unstyled mb-0">
                     <li><i class="fas fa-check text-success me-2"></i>Your poll will be created in draft mode</li>
@@ -132,7 +161,7 @@ function addOption() {
     const optionDiv = document.createElement('div');
     optionDiv.className = 'input-group mb-2';
     optionDiv.innerHTML = `
-        <input type="text" class="form-control" name="options" placeholder="Option ${optionCount}">
+        <input type="text" class="form-control" name="options" placeholder="Option ${optionCount} (e.g., Data Science)">
         <button type="button" class="btn btn-outline-danger" onclick="removeOption(this)">
             <i class="fas fa-trash"></i>
         </button>

@@ -153,7 +153,7 @@ def generate_word_cloud_data(text_responses):
 
 def create_word_cloud_visualization(word_cloud_data, max_words=30):
     """
-    Create word cloud visualization data for frontend
+    Create word cloud visualization data for frontend with Mentimeter-style presentation
     
     Args:
         word_cloud_data (dict): Word frequencies dictionary
@@ -176,33 +176,51 @@ def create_word_cloud_visualization(word_cloud_data, max_words=30):
     total_words = sum(word_cloud_data.values())
     unique_words = len(word_cloud_data)
     
-    # Format for frontend (normalize sizes between 10-60 for display)
+    # Enhanced formatting for Mentimeter-style presentation
     if sorted_words:
         max_freq = sorted_words[0][1]
         min_freq = sorted_words[-1][1]
         
+        # Enhanced size range for better visual impact (Mentimeter-style: 16-72px)
+        min_size = 16
+        max_size = 72
+        size_range = max_size - min_size
+        
         # Avoid division by zero
         if max_freq == min_freq:
-            size_range = 50
-            base_size = 10
-        else:
-            size_range = 50  # 60 - 10
-            base_size = 10
+            size_range = 0
         
         formatted_words = []
-        for word, freq in sorted_words:
+        for i, (word, freq) in enumerate(sorted_words):
             if max_freq == min_freq:
-                size = base_size + size_range
+                size = max_size
             else:
-                # Normalize size between 10 and 60
+                # Enhanced normalization with power curve for better visual distribution
                 normalized = (freq - min_freq) / (max_freq - min_freq)
-                size = base_size + (normalized * size_range)
+                # Apply power curve for more dramatic size differences
+                size = min_size + (normalized ** 0.7 * size_range)
+            
+            # Calculate prominence score (0-100) for additional styling
+            prominence = round((freq / max_freq) * 100) if max_freq > 0 else 0
+            
+            # Assign visual weight category
+            if prominence >= 80:
+                weight = 'heavy'
+            elif prominence >= 50:
+                weight = 'bold'
+            elif prominence >= 25:
+                weight = 'medium'
+            else:
+                weight = 'light'
             
             formatted_words.append({
                 'text': word,
                 'size': round(size),
                 'frequency': freq,
-                'percentage': round((freq / total_words) * 100, 1)
+                'percentage': round((freq / total_words) * 100, 1),
+                'prominence': prominence,
+                'weight': weight,
+                'rank': i + 1
             })
     else:
         formatted_words = []
@@ -210,5 +228,6 @@ def create_word_cloud_visualization(word_cloud_data, max_words=30):
     return {
         'words': formatted_words,
         'total_words': total_words,
-        'unique_words': unique_words
+        'unique_words': unique_words,
+        'max_frequency': max_freq if sorted_words else 0
     } 
