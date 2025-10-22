@@ -1,0 +1,526 @@
+{% extends 'base.html' %}
+
+{% block title %}Monitor Poll - Learning Platform{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0">
+                    <i class="fas fa-eye me-2"></i>Live Poll Monitor: {{ poll.title }}
+                </h4>
+            </div>
+            <div class="card-body">
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h6>Poll Code</h6>
+                        <h3 class="text-primary"><code>{{ poll.poll_code }}</code></h3>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Total Responses</h6>
+                        <h3 class="text-success" id="response-count">{{ responses.count }}</h3>
+                    </div>
+                </div>
+                
+                {% if poll.poll_type in 'single_choice,multiple_choice,yes_no' %}
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Response Distribution</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="distributionChart"></canvas>
+                    </div>
+                </div>
+                {% elif poll.poll_type == 'rating_scale' %}
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-star me-2"></i>Rating Distribution</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="ratingChart"></canvas>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-clock me-2"></i>Response Timeline</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="timelineChart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Word Cloud (for text response polls) -->
+                {% if poll.poll_type == 'text_response' %}
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-cloud me-2"></i>Live Word Cloud</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="wordCloudContainer" class="word-cloud-container">
+                            <div class="text-center py-4">
+                                <i class="fas fa-cloud fa-2x text-muted mb-3"></i>
+                                <h6 class="text-muted">Waiting for text responses...</h6>
+                                <p class="text-muted small">Words will appear here as students submit their responses</p>
+                            </div>
+                        </div>
+                        <div id="wordCloudStats" class="mt-3" style="display: none;">
+                            <div class="row text-center">
+                                <div class="col-4">
+                                    <small class="text-muted">Total Words</small>
+                                    <div id="totalWords" class="fw-bold">0</div>
+                                </div>
+                                <div class="col-4">
+                                    <small class="text-muted">Unique Words</small>
+                                    <div id="uniqueWords" class="fw-bold">0</div>
+                                </div>
+                                <div class="col-4">
+                                    <small class="text-muted">Responses</small>
+                                    <div id="textResponses" class="fw-bold">0</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-qrcode me-2"></i>Share Poll</h5>
+            </div>
+            <div class="card-body text-center">
+                <img src="data:image/png;base64,{{ qr_code }}" alt="QR Code" class="img-fluid mb-3" style="max-width: 200px;">
+                <p class="mb-3">Students can scan this QR code to join the poll</p>
+                
+                <div class="input-group mb-3">
+                    <input type="text" class="form-control" id="poll-url" value="{{ poll_url }}" readonly>
+                    <button class="btn btn-outline-secondary" type="button" onclick="copyUrl()">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                </div>
+                
+                <div class="d-grid gap-2">
+                    <a href="{% url 'end_poll' poll.id %}" class="btn btn-warning">
+                        <i class="fas fa-stop me-1"></i>End Poll
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-list me-2"></i>Recent Responses</h5>
+            </div>
+            <div class="card-body">
+                <div id="recent-responses" style="max-height: 300px; overflow-y: auto;">
+                    {% for response in responses|slice:":10" %}
+                    <div class="d-flex justify-content-between align-items-center mb-2 p-2 bg-light rounded">
+                        <div>
+                            <small class="text-muted">{{ response.submitted_at|date:"H:i:s" }}</small>
+                            <br>
+                            {% if poll.is_anonymous %}
+                                <span class="text-muted">Anonymous</span>
+                            {% else %}
+                                <strong>{{ response.student_name|default:"Anonymous" }}</strong>
+                            {% endif %}
+                        </div>
+                        <div class="text-end">
+                            {% if poll.poll_type == 'rating_scale' %}
+                                <span class="badge bg-primary">{{ response.rating_value }}/5</span>
+                            {% elif poll.poll_type == 'text_response' %}
+                                <small class="text-muted">{{ response.text_response|truncatechars:20 }}</small>
+                            {% else %}
+                                <small class="text-muted">{{ response.selected_options|length }} option(s)</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted text-center">No responses yet</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+.word-cloud-container {
+    min-height: 400px;
+    max-height: 500px;
+    overflow-y: auto;
+    padding: 30px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    text-align: center;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    align-content: flex-start;
+}
+
+.word-cloud-word {
+    display: inline-block;
+    margin: 10px 15px;
+    padding: 10px 20px;
+    color: white;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    font-weight: 600;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    position: relative;
+    overflow: hidden;
+    transform-origin: center;
+}
+
+.word-cloud-word::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s;
+}
+
+.word-cloud-word:hover::before {
+    left: 100%;
+}
+
+.word-cloud-word:hover {
+    transform: scale(1.15) rotate(2deg);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+    z-index: 10;
+    position: relative;
+}
+
+/* Mentimeter-style color palette based on prominence */
+.word-cloud-word.prominence-1 { background: linear-gradient(45deg, #ff6b6b, #ff8e8e); }
+.word-cloud-word.prominence-2 { background: linear-gradient(45deg, #4ecdc4, #88d8d0); }
+.word-cloud-word.prominence-3 { background: linear-gradient(45deg, #45b7d1, #6a9eff); }
+.word-cloud-word.prominence-4 { background: linear-gradient(45deg, #96ceb4, #b8e9d4); }
+.word-cloud-word.prominence-5 { background: linear-gradient(45deg, #feca57, #ff9ff3); }
+.word-cloud-word.prominence-6 { background: linear-gradient(45deg, #1dd1a1, #10ac84); }
+.word-cloud-word.prominence-7 { background: linear-gradient(45deg, #54a0ff, #2e86de); }
+.word-cloud-word.prominence-8 { background: linear-gradient(45deg, #ff9f43, #ee5a24); }
+.word-cloud-word.prominence-9 { background: linear-gradient(45deg, #c8d6e5, #0abde3); }
+.word-cloud-word.prominence-10 { background: linear-gradient(45deg, #ff9ff3, #f368e0); }
+
+.word-cloud-word:nth-child(odd) {
+    background: linear-gradient(45deg, #28a745, #20c997);
+}
+
+.word-cloud-word:nth-child(3n) {
+    background: linear-gradient(45deg, #dc3545, #fd7e14);
+}
+
+.word-cloud-word:nth-child(4n) {
+    background: linear-gradient(45deg, #6f42c1, #e83e8c);
+}
+
+.word-cloud-word:nth-child(5n) {
+    background: linear-gradient(45deg, #17a2b8, #6c757d);
+}
+
+@media (max-width: 768px) {
+    .word-cloud-container {
+        min-height: 300px;
+        max-height: 400px;
+        padding: 20px;
+    }
+    
+    .word-cloud-word {
+        margin: 8px 12px;
+        padding: 8px 16px;
+        font-size: 14px !important;
+    }
+}
+</style>
+
+<script>
+let responseChart, distributionChart, timelineChart;
+let responseCount = {{ responses.count }};
+
+// Initialize charts
+document.addEventListener('DOMContentLoaded', function() {
+    {% if poll.poll_type in 'single_choice,multiple_choice,yes_no' %}
+    initDistributionChart();
+    {% elif poll.poll_type == 'rating_scale' %}
+    initRatingChart();
+    {% endif %}
+    initTimelineChart();
+    
+    // Start polling for updates
+    setInterval(updatePollData, 3000);
+});
+
+{% if poll.poll_type in 'single_choice,multiple_choice,yes_no' %}
+function initDistributionChart() {
+    const ctx = document.getElementById('distributionChart').getContext('2d');
+    const options = [
+        {% for option in poll.options.all %}
+        '{{ option.option_text }}',
+        {% endfor %}
+    ];
+    
+    const counts = [
+        {% for option in poll.options.all %}
+        {{ responses|length|add:"0" }},
+        {% endfor %}
+    ];
+    
+    distributionChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: options,
+            datasets: [{
+                label: 'Responses',
+                data: counts,
+                backgroundColor: [
+                    'rgba(54, 162, 235, 0.8)',
+                    'rgba(255, 99, 132, 0.8)',
+                    'rgba(255, 205, 86, 0.8)',
+                    'rgba(75, 192, 192, 0.8)',
+                    'rgba(153, 102, 255, 0.8)'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+{% elif poll.poll_type == 'rating_scale' %}
+function initRatingChart() {
+    const ctx = document.getElementById('ratingChart').getContext('2d');
+    const ratings = [1, 2, 3, 4, 5];
+    const counts = [0, 0, 0, 0, 0]; // Will be updated
+    
+    ratingChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ratings.map(r => r + ' star' + (r > 1 ? 's' : '')),
+            datasets: [{
+                label: 'Responses',
+                data: counts,
+                backgroundColor: 'rgba(255, 193, 7, 0.8)'
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+{% endif %}
+
+function initTimelineChart() {
+    const ctx = document.getElementById('timelineChart').getContext('2d');
+    
+    timelineChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Responses',
+                data: [],
+                borderColor: 'rgb(75, 192, 192)',
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+
+function updatePollData() {
+    // This would typically make an AJAX call to get updated data
+    // For now, we'll simulate with the current data
+    updateResponseCount();
+    {% if poll.poll_type in 'single_choice,multiple_choice,yes_no' %}
+    updateDistributionChart();
+    {% elif poll.poll_type == 'rating_scale' %}
+    updateRatingChart();
+    {% endif %}
+    updateTimelineChart();
+}
+
+function updateResponseCount() {
+    // Simulate response count update
+    document.getElementById('response-count').textContent = responseCount;
+}
+
+{% if poll.poll_type in 'single_choice,multiple_choice,yes_no' %}
+function updateDistributionChart() {
+    // Update chart with new data
+    if (distributionChart) {
+        // In a real implementation, this would fetch updated data via AJAX
+        distributionChart.update();
+    }
+}
+{% elif poll.poll_type == 'rating_scale' %}
+function updateRatingChart() {
+    if (ratingChart) {
+        ratingChart.update();
+    }
+}
+{% endif %}
+
+function updateTimelineChart() {
+    if (timelineChart) {
+        timelineChart.update();
+    }
+}
+
+function copyUrl() {
+    const urlInput = document.getElementById('poll-url');
+    urlInput.select();
+    document.execCommand('copy');
+    alert('Poll URL copied to clipboard!');
+}
+
+{% if poll.poll_type == 'text_response' %}
+// Word Cloud functionality
+let wordCloudWords = [];
+
+function updateWordCloud() {
+    fetch(`{% url 'poll_word_cloud_data' poll.id %}`, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success && data.has_word_cloud) {
+            renderWordCloud(data.word_cloud_visualization);
+            updateWordCloudStats(data.word_cloud_visualization, data.total_responses);
+        }
+    })
+    .catch(error => {
+        console.error('Error updating word cloud:', error);
+    });
+}
+
+function renderWordCloud(wordCloudData) {
+    const container = document.getElementById('wordCloudContainer');
+    
+    if (!wordCloudData.words || wordCloudData.words.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-4">
+                <i class="fas fa-cloud fa-2x text-muted mb-3"></i>
+                <h6 class="text-muted">Waiting for text responses...</h6>
+                <p class="text-muted small">Words will appear here as students submit their responses</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // Clear container
+    container.innerHTML = '';
+    
+    // Sort words by frequency for better display
+    const sortedWords = wordCloudData.words.sort((a, b) => b.frequency - a.frequency);
+    
+    // Create word elements with Mentimeter-style enhancements
+    sortedWords.forEach((wordData, index) => {
+        const wordElement = document.createElement('span');
+        wordElement.className = 'word-cloud-word';
+        
+        // Add prominence class for styling
+        const prominenceClass = Math.max(1, Math.min(10, Math.ceil(((index + 1) / sortedWords.length) * 10)));
+        wordElement.classList.add(`prominence-${prominenceClass}`);
+        
+        wordElement.textContent = wordData.text;
+        wordElement.style.fontSize = wordData.size + 'px';
+        wordElement.style.margin = '10px 15px';
+        wordElement.style.display = 'inline-block';
+        wordElement.style.cursor = 'pointer';
+        wordElement.style.transition = 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+        
+        // Add hover effect with rotation
+        wordElement.addEventListener('mouseenter', function() {
+            this.style.transform = 'scale(1.15) rotate(2deg)';
+            this.style.zIndex = '10';
+            this.style.boxShadow = '0 8px 25px rgba(0,0,0,0.3)';
+        });
+        
+        wordElement.addEventListener('mouseleave', function() {
+            this.style.transform = 'scale(1) rotate(0deg)';
+            this.style.zIndex = '1';
+            this.style.boxShadow = '0 4px 15px rgba(0,0,0,0.2)';
+        });
+        
+        // Add click event to show frequency
+        wordElement.addEventListener('click', function() {
+            alert(`"${wordData.text}" appears ${wordData.frequency} time${wordData.frequency !== 1 ? 's' : ''} (${wordData.percentage}%)`);
+        });
+        
+        container.appendChild(wordElement);
+    });
+}
+
+function updateWordCloudStats(wordCloudData, totalResponses) {
+    const statsContainer = document.getElementById('wordCloudStats');
+    const totalWordsEl = document.getElementById('totalWords');
+    const uniqueWordsEl = document.getElementById('uniqueWords');
+    const textResponsesEl = document.getElementById('textResponses');
+    
+    if (wordCloudData.words.length > 0) {
+        statsContainer.style.display = 'block';
+        totalWordsEl.textContent = wordCloudData.total_words;
+        uniqueWordsEl.textContent = wordCloudData.unique_words;
+        textResponsesEl.textContent = totalResponses;
+    } else {
+        statsContainer.style.display = 'none';
+    }
+}
+
+// Update word cloud every 3 seconds for text response polls
+setInterval(updateWordCloud, 3000);
+
+// Initial word cloud update
+updateWordCloud();
+{% endif %}
+</script>
+{% endblock %}

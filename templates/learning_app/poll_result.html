@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+
+{% block title %}Poll Result - Learning Platform{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-success text-white text-center">
+                <h4 class="mb-0">
+                    <i class="fas fa-check-circle me-2"></i>Thank You!
+                </h4>
+            </div>
+            <div class="card-body text-center">
+                <div class="mb-4">
+                    <i class="fas fa-poll fa-4x text-success mb-3"></i>
+                    <h3>Your response has been recorded</h3>
+                    <p class="text-muted">Thank you for participating in the poll!</p>
+                </div>
+                
+                <div class="card bg-light">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ poll.title }}</h5>
+                        {% if poll.description %}
+                            <p class="text-muted">{{ poll.description }}</p>
+                        {% endif %}
+                        
+                        <div class="row text-center">
+                            <div class="col-md-4">
+                                <h6 class="text-primary">{{ total_responses }}</h6>
+                                <small class="text-muted">Total Responses</small>
+                            </div>
+                            <div class="col-md-4">
+                                <h6 class="text-info">{{ poll.poll_code }}</h6>
+                                <small class="text-muted">Poll Code</small>
+                            </div>
+                            <div class="col-md-4">
+                                <h6 class="text-success">{{ poll.get_poll_type_display }}</h6>
+                                <small class="text-muted">Poll Type</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <p class="text-muted">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Results will be available after the poll ends.
+                    </p>
+                </div>
+                
+                <div class="d-grid gap-2">
+                    <a href="{% url 'join_poll' %}" class="btn btn-primary">
+                        <i class="fas fa-plus me-1"></i>Join Another Poll
+                    </a>
+                    <a href="{% url 'home' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-home me-1"></i>Back to Home
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-body">
+                <h6 class="card-title">
+                    <i class="fas fa-lightbulb me-2 text-warning"></i>What happens next?
+                </h6>
+                <ul class="list-unstyled mb-0">
+                    <li><i class="fas fa-check text-success me-2"></i>Your response has been saved</li>
+                    <li><i class="fas fa-eye text-info me-2"></i>Your teacher can see the live results</li>
+                    <li><i class="fas fa-stop text-warning me-2"></i>When the poll ends, you can view final results</li>
+                    <li><i class="fas fa-poll text-primary me-2"></i>You can join other active polls anytime</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    border: none;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.fa-poll {
+    color: #198754 !important;
+}
+
+.fa-check-circle {
+    color: #198754 !important;
+}
+</style>
+{% endblock %}

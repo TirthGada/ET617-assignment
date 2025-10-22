@@ -9,14 +9,15 @@ from django.utils import timezone
 from django.db.models import Q
 import json
 
-from .models import Course, Content, Quiz, UserProgress, ClickstreamEvent, VideoAnalytics, TeacherProfile, LiveQuiz, QuizQuestion, QuizParticipant, QuizAnswer, StudentAnalysis, QuizAnalytics, SubjectiveAnswer
-from .utils import get_client_ip, log_clickstream_event
+from .models import Course, Content, Quiz, UserProgress, ClickstreamEvent, VideoAnalytics, TeacherProfile, LiveQuiz, QuizQuestion, QuizParticipant, QuizAnswer, StudentAnalysis, QuizAnalytics, SubjectiveAnswer, Poll, PollOption, PollResponse, PollAnalytics
+from .utils import get_client_ip, log_clickstream_event, generate_word_cloud_data, create_word_cloud_visualization
 from .llm_utils import llm_service
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 import base64
 from django.db import transaction
 from collections import Counter
+import qrcode
 try:
     from wordcloud import WordCloud
     import matplotlib.pyplot as plt
@@ -1272,4 +1273,435 @@ def student_help_content(request, quiz_id):
         'needs_help': participant and participant.score < (participant.total_questions * 0.7) if participant else False
     }
     
-    return render(request, 'learning_app/student_help_content.html', context) 
+    return render(request, 'learning_app/student_help_content.html', context)
+
+
+# ============ POLL SYSTEM VIEWS ============
+
+def teacher_required(view_func):
+    """Decorator to check if user is logged in as teacher"""
+    def wrapper(request, *args, **kwargs):
+        teacher_id = request.session.get('teacher_id')
+        if not teacher_id:
+            messages.error(request, 'Please login as a teacher first.')
+            return redirect('teacher_login')
+        return view_func(request, *args, **kwargs)
+    return wrapper
+
+
+@teacher_required
+def teacher_polls(request):
+    """List all polls for the teacher"""
+    teacher_id = request.session.get('teacher_id')
+    teacher_profile = get_object_or_404(TeacherProfile, id=teacher_id)
+    polls = Poll.objects.filter(teacher=teacher_profile).order_by('-created_at')
+    
+    context = {
+        'polls': polls,
+        'teacher_profile': teacher_profile
+    }
+    
+    return render(request, 'learning_app/teacher_polls.html', context)
+
+
+@teacher_required
+def create_poll(request):
+    """Create a new poll"""
+    teacher_id = request.session.get('teacher_id')
+    teacher_profile = get_object_or_404(TeacherProfile, id=teacher_id)
+    
+    if request.method == 'POST':
+        title = request.POST.get('title')
+        description = request.POST.get('description', '')
+        poll_type = request.POST.get('poll_type')
+        is_anonymous = request.POST.get('is_anonymous') == 'on'
+        allow_multiple_responses = request.POST.get('allow_multiple_responses') == 'on'
+        
+        poll = Poll.objects.create(
+            teacher=teacher_profile,
+            title=title,
+            description=description,
+            poll_type=poll_type,
+            is_anonymous=is_anonymous,
+            allow_multiple_responses=allow_multiple_responses
+        )
+        
+        # Add options if it's a choice-based poll
+        if poll_type in ['single_choice', 'multiple_choice', 'yes_no']:
+            options_text = request.POST.getlist('options')
+            for i, option_text in enumerate(options_text):
+                if option_text.strip():
+                    PollOption.objects.create(
+                        poll=poll,
+                        option_text=option_text.strip(),
+                        order=i
+                    )
+        
+        messages.success(request, f'Poll "{poll.title}" created successfully!')
+        return redirect('edit_poll', poll_id=poll.id)
+    
+    return render(request, 'learning_app/create_poll.html')
+
+
+@teacher_required
+def edit_poll(request, poll_id):
+    """Edit poll and manage options"""
+    teacher_id = request.session.get('teacher_id')
+    teacher_profile = get_object_or_404(TeacherProfile, id=teacher_id)
+    poll = get_object_or_404(Poll, id=poll_id, teacher=teacher_profile)
+    
+    if request.method == 'POST':
+        poll.title = request.POST.get('title')
+        poll.description = request.POST.get('description', '')
+        poll.poll_type = request.POST.get('poll_type')
+        poll.is_anonymous = request.POST.get('is_anonymous') == 'on'
+        poll.allow_multiple_responses = request.POST.get('allow_multiple_responses') == 'on'
+        poll.save()
+        
+        messages.success(request, 'Poll updated successfully!')
+        return redirect('edit_poll', poll_id=poll.id)
+    
+    context = {
+        'poll': poll,
+        'options': poll.options.all()
+    }
+    
+    return render(request, 'learning_app/edit_poll.html', context)
+
+
+@csrf_exempt
+@teacher_required
+def add_poll_option(request, poll_id):
+    """Add new option to poll via AJAX"""
+    if request.method == 'POST':
+        teacher_id = request.session.get('teacher_id')
+        teacher_profile = get_object_or_404(TeacherProfile, id=teacher_id)
+        poll = get_object_or_404(Poll, id=poll_id, teacher=teacher_profile)
+        
+        option_text = request.POST.get('option_text')
+        if option_text:
+            # Get the next order number
+            last_option = poll.options.order_by('-order').first()
+            next_order = (last_option.order + 1) if last_option else 0
+            
+            option = PollOption.objects.create(
+                poll=poll,
+                option_text=option_text,
+                order=next_order
+            )
+            
+            return JsonResponse({
+                'success': True,
+                'option_id': option.id,
+                'option_text': option.text,
+                'order': option.order
+            })
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request'})
+
+
+@csrf_exempt
+@teacher_required
+def remove_poll_option(request, poll_id):
+    """Remove option from poll via AJAX"""
+    if request.method == 'POST':
+        teacher_id = request.session.get('teacher_id')
+        teacher_profile = get_object_or_404(TeacherProfile, id=teacher_id)
+        poll = get_object_or_404(Poll, id=poll_id, teacher=teacher_profile)
+        
+        option_id = request.POST.get('option_id')
+        try:
+            option = poll.options.get(id=option_id)
+            option.delete()
+            return JsonResponse({'success': True})
+        except PollOption.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Option not found'})
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request'})
+
+
+@teacher_required
+def start_poll(request, poll_id):
+    """Start/activate a poll"""
+    teacher_id = request.session.get('teacher_id')
+    teacher_profile = get_object_or_404(TeacherProfile, id=teacher_id)
+    poll = get_object_or_404(Poll, id=poll_id, teacher=teacher_profile)
+    
+    if poll.status == 'draft':
+        poll.status = 'active'
+        poll.started_at = timezone.now()
+        poll.save()
+        
+        messages.success(request, f'Poll "{poll.title}" is now active!')
+    else:
+        messages.error(request, 'Poll is already active or ended.')
+    
+    return redirect('poll_monitor', poll_id=poll.id)
+
+
+@teacher_required
+def poll_monitor(request, poll_id):
+    """Real-time poll monitoring"""
+    teacher_id = request.session.get('teacher_id')
+    teacher_profile = get_object_or_404(TeacherProfile, id=teacher_id)
+    poll = get_object_or_404(Poll, id=poll_id, teacher=teacher_profile)
+    
+    responses = poll.responses.all()
+    
+    # Generate QR code
+    qr = qrcode.QRCode(version=1, box_size=10, border=5)
+    poll_url = request.build_absolute_uri(f'/poll/{poll.poll_code}/')
+    qr.add_data(poll_url)
+    qr.make(fit=True)
+    
+    img = qr.make_image(fill_color="black", back_color="white")
+    buffer = io.BytesIO()
+    img.save(buffer, format='PNG')
+    buffer.seek(0)
+    qr_code_data = base64.b64encode(buffer.getvalue()).decode()
+    
+    context = {
+        'poll': poll,
+        'responses': responses,
+        'qr_code': qr_code_data,
+        'poll_url': poll_url
+    }
+    
+    return render(request, 'learning_app/poll_monitor.html', context)
+
+
+@teacher_required
+def end_poll(request, poll_id):
+    """End poll and generate analytics"""
+    teacher_id = request.session.get('teacher_id')
+    teacher_profile = get_object_or_404(TeacherProfile, id=teacher_id)
+    poll = get_object_or_404(Poll, id=poll_id, teacher=teacher_profile)
+    
+    if poll.status == 'active':
+        poll.status = 'ended'
+        poll.ended_at = timezone.now()
+        poll.save()
+        
+        # Generate analytics
+        generate_poll_analytics(poll)
+        
+        messages.success(request, f'Poll "{poll.title}" ended successfully!')
+        return redirect('poll_results', poll_id=poll.id)
+    else:
+        messages.error(request, 'Poll is not active.')
+        return redirect('teacher_polls')
+
+
+def generate_poll_analytics(poll):
+    """Generate analytics for a poll"""
+    responses = poll.responses.all()
+    total_responses = responses.count()
+    
+    # Response distribution
+    response_distribution = {}
+    if poll.poll_type in ['single_choice', 'multiple_choice', 'yes_no']:
+        for option in poll.options.all():
+            count = responses.filter(selected_options__contains=[option.id]).count()
+            response_distribution[option.id] = {
+                'option_text': option.option_text,
+                'count': count,
+                'percentage': (count / total_responses * 100) if total_responses > 0 else 0
+            }
+    elif poll.poll_type == 'rating_scale':
+        ratings = [r.rating_value for r in responses if r.rating_value is not None]
+        if ratings:
+            for rating in range(1, 6):
+                count = ratings.count(rating)
+                response_distribution[rating] = {
+                    'count': count,
+                    'percentage': (count / len(ratings) * 100) if ratings else 0
+                }
+    
+    # Average rating
+    average_rating = 0.0
+    if poll.poll_type == 'rating_scale':
+        ratings = [r.rating_value for r in responses if r.rating_value is not None]
+        if ratings:
+            average_rating = sum(ratings) / len(ratings)
+    
+    # Response timeline
+    response_timeline = []
+    for response in responses:
+        response_timeline.append({
+            'timestamp': response.submitted_at.isoformat(),
+            'count': 1
+        })
+    
+    # Generate word cloud data for text response polls
+    word_cloud_data = {}
+    word_cloud_generated_at = None
+    
+    if poll.poll_type == 'text_response':
+        print(f"🎯 Generating word cloud for text response poll: {poll.title}")
+        text_responses = [response.text_response for response in responses if response.text_response]
+        word_cloud_data = generate_word_cloud_data(text_responses)
+        word_cloud_generated_at = timezone.now()
+    
+    # Save analytics
+    PollAnalytics.objects.update_or_create(
+        poll=poll,
+        defaults={
+            'total_responses': total_responses,
+            'response_distribution': response_distribution,
+            'average_rating': average_rating,
+            'response_timeline': response_timeline,
+            'word_cloud_data': word_cloud_data,
+            'word_cloud_generated_at': word_cloud_generated_at
+        }
+    )
+
+
+@teacher_required
+def poll_results(request, poll_id):
+    """View final poll results"""
+    teacher_id = request.session.get('teacher_id')
+    teacher_profile = get_object_or_404(TeacherProfile, id=teacher_id)
+    poll = get_object_or_404(Poll, id=poll_id, teacher=teacher_profile)
+    
+    responses = poll.responses.all()
+    analytics = getattr(poll, 'analytics', None)
+    
+    context = {
+        'poll': poll,
+        'responses': responses,
+        'analytics': analytics
+    }
+    
+    return render(request, 'learning_app/poll_results.html', context)
+
+
+def join_poll(request):
+    """Student join poll with code"""
+    if request.method == 'POST':
+        poll_code = request.POST.get('poll_code', '').strip().upper()
+        
+        try:
+            poll = Poll.objects.get(poll_code=poll_code, status='active')
+            return redirect('take_poll', poll_id=poll.id)
+        except Poll.DoesNotExist:
+            messages.error(request, 'Invalid poll code or poll is not active.')
+    
+    return render(request, 'learning_app/join_poll.html')
+
+
+def take_poll(request, poll_id):
+    """Student poll response form"""
+    poll = get_object_or_404(Poll, id=poll_id)
+    
+    if poll.status != 'active':
+        messages.error(request, 'This poll is not currently active.')
+        return redirect('join_poll')
+    
+    # Check if user already responded (unless multiple responses allowed)
+    client_ip = get_client_ip(request)
+    if not poll.allow_multiple_responses:
+        if poll.responses.filter(ip_address=client_ip).exists():
+            messages.error(request, 'You have already responded to this poll.')
+            return redirect('poll_result', poll_id=poll.id)
+    
+    if request.method == 'POST':
+        student_name = request.POST.get('student_name', '') if not poll.is_anonymous else ''
+        student_email = request.POST.get('student_email', '') if not poll.is_anonymous else ''
+        
+        # Handle different poll types
+        if poll.poll_type in ['single_choice', 'multiple_choice']:
+            selected_options = request.POST.getlist('selected_options')
+            PollResponse.objects.create(
+                poll=poll,
+                student_name=student_name,
+                student_email=student_email,
+                selected_options=selected_options,
+                ip_address=client_ip
+            )
+        elif poll.poll_type == 'text_response':
+            text_response = request.POST.get('text_response', '')
+            PollResponse.objects.create(
+                poll=poll,
+                student_name=student_name,
+                student_email=student_email,
+                text_response=text_response,
+                ip_address=client_ip
+            )
+        elif poll.poll_type == 'rating_scale':
+            rating_value = int(request.POST.get('rating_value', 0))
+            PollResponse.objects.create(
+                poll=poll,
+                student_name=student_name,
+                student_email=student_email,
+                rating_value=rating_value,
+                ip_address=client_ip
+            )
+        elif poll.poll_type == 'yes_no':
+            selected_options = [request.POST.get('yes_no_response')]
+            PollResponse.objects.create(
+                poll=poll,
+                student_name=student_name,
+                student_email=student_email,
+                selected_options=selected_options,
+                ip_address=client_ip
+            )
+        
+        messages.success(request, 'Thank you for your response!')
+        return redirect('poll_result', poll_id=poll.id)
+    
+    context = {
+        'poll': poll,
+        'options': poll.options.all()
+    }
+    
+    return render(request, 'learning_app/take_poll.html', context)
+
+
+def poll_result(request, poll_id):
+    """Show poll results to student"""
+    poll = get_object_or_404(Poll, id=poll_id)
+    
+    # Get basic stats
+    total_responses = poll.responses.count()
+    
+    context = {
+        'poll': poll,
+        'total_responses': total_responses
+    }
+    
+    return render(request, 'learning_app/poll_result.html', context)
+
+
+# ============ WORD CLOUD AJAX ENDPOINTS ============
+
+@teacher_required
+@csrf_exempt
+def poll_word_cloud_data(request, poll_id):
+    """Get real-time word cloud data for active poll"""
+    teacher_id = request.session.get('teacher_id')
+    teacher_profile = get_object_or_404(TeacherProfile, id=teacher_id)
+    poll = get_object_or_404(Poll, id=poll_id, teacher=teacher_profile)
+    
+    if request.method == 'GET':
+        # Get current responses
+        responses = poll.responses.all()
+        
+        # Generate word cloud data if this is a text response poll
+        word_cloud_data = {}
+        word_cloud_visualization = {}
+        
+        if poll.poll_type == 'text_response':
+            text_responses = [response.text_response for response in responses if response.text_response]
+            word_cloud_data = generate_word_cloud_data(text_responses)
+            word_cloud_visualization = create_word_cloud_visualization(word_cloud_data)
+        
+        return JsonResponse({
+            'success': True,
+            'poll_type': poll.poll_type,
+            'total_responses': responses.count(),
+            'word_cloud_data': word_cloud_data,
+            'word_cloud_visualization': word_cloud_visualization,
+            'has_word_cloud': poll.poll_type == 'text_response' and bool(word_cloud_data)
+        })
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request method'}) 

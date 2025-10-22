@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Poll - Learning Platform{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">
+                    <i class="fas fa-edit me-2"></i>Edit Poll: {{ poll.title }}
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Poll Title *</label>
+                        <input type="text" class="form-control" id="title" name="title" value="{{ poll.title }}" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3">{{ poll.description }}</textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="poll_type" class="form-label">Poll Type</label>
+                        <select class="form-select" id="poll_type" name="poll_type" disabled>
+                            <option value="{{ poll.poll_type }}" selected>{{ poll.get_poll_type_display }}</option>
+                        </select>
+                        <div class="form-text">Poll type cannot be changed after creation</div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="is_anonymous" name="is_anonymous" {% if poll.is_anonymous %}checked{% endif %}>
+                                <label class="form-check-label" for="is_anonymous">
+                                    Anonymous Responses
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="allow_multiple_responses" name="allow_multiple_responses" {% if poll.allow_multiple_responses %}checked{% endif %}>
+                                <label class="form-check-label" for="allow_multiple_responses">
+                                    Allow Multiple Responses
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{% url 'teacher_polls' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>Back to Polls
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        {% if poll.poll_type in 'single_choice,multiple_choice' %}
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-list me-2"></i>Poll Options</h5>
+            </div>
+            <div class="card-body">
+                <div id="options-list">
+                    {% for option in options %}
+                    <div class="input-group mb-2">
+                        <input type="text" class="form-control" value="{{ option.option_text }}" data-option-id="{{ option.id }}">
+                        <button type="button" class="btn btn-outline-danger" onclick="removeOption({{ option.id }})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                    {% endfor %}
+                </div>
+                <button type="button" class="btn btn-outline-primary btn-sm" onclick="addOption()">
+                    <i class="fas fa-plus me-1"></i>Add Option
+                </button>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Poll Info</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row">
+                    <dt class="col-sm-4">Status:</dt>
+                    <dd class="col-sm-8">
+                        {% if poll.status == 'draft' %}
+                            <span class="badge bg-warning">Draft</span>
+                        {% elif poll.status == 'active' %}
+                            <span class="badge bg-success">Active</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Ended</span>
+                        {% endif %}
+                    </dd>
+                    
+                    <dt class="col-sm-4">Poll Code:</dt>
+                    <dd class="col-sm-8"><code>{{ poll.poll_code }}</code></dd>
+                    
+                    <dt class="col-sm-4">Created:</dt>
+                    <dd class="col-sm-8">{{ poll.created_at|date:"M d, Y H:i" }}</dd>
+                    
+                    <dt class="col-sm-4">Responses:</dt>
+                    <dd class="col-sm-8"><span class="badge bg-info">{{ poll.responses.count }}</span></dd>
+                </dl>
+                
+                <div class="d-grid gap-2">
+                    {% if poll.status == 'draft' %}
+                        <a href="{% url 'start_poll' poll.id %}" class="btn btn-success">
+                            <i class="fas fa-play me-1"></i>Start Poll
+                        </a>
+                    {% elif poll.status == 'active' %}
+                        <a href="{% url 'poll_monitor' poll.id %}" class="btn btn-info">
+                            <i class="fas fa-eye me-1"></i>Monitor Poll
+                        </a>
+                        <a href="{% url 'end_poll' poll.id %}" class="btn btn-warning">
+                            <i class="fas fa-stop me-1"></i>End Poll
+                        </a>
+                    {% elif poll.status == 'ended' %}
+                        <a href="{% url 'poll_results' poll.id %}" class="btn btn-secondary">
+                            <i class="fas fa-chart-bar me-1"></i>View Results
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function addOption() {
+    const optionsList = document.getElementById('options-list');
+    const optionCount = optionsList.children.length + 1;
+    
+    const optionDiv = document.createElement('div');
+    optionDiv.className = 'input-group mb-2';
+    optionDiv.innerHTML = `
+        <input type="text" class="form-control" placeholder="Option ${optionCount}">
+        <button type="button" class="btn btn-outline-danger" onclick="removeOption(0)">
+            <i class="fas fa-trash"></i>
+        </button>
+    `;
+    
+    optionsList.appendChild(optionDiv);
+}
+
+function removeOption(optionId) {
+    if (optionId > 0) {
+        // Remove existing option via AJAX
+        fetch(`{% url 'remove_poll_option' poll.id %}`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `option_id=${optionId}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error removing option: ' + data.error);
+            }
+        });
+    } else {
+        // Remove newly added option
+        event.target.parentElement.remove();
+    }
+}
+</script>
+{% endblock %}

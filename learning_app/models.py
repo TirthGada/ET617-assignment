@@ -275,4 +275,91 @@ class QuizAnalytics(models.Model):
     generated_at = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
-        return f"Analytics for {self.quiz.title}" 
+        return f"Analytics for {self.quiz.title}"
+
+
+# ============ POLL SYSTEM MODELS ============
+
+class Poll(models.Model):
+    POLL_TYPES = [
+        ('single_choice', 'Single Choice'),
+        ('multiple_choice', 'Multiple Choice'),
+        ('text_response', 'Text Response'),
+        ('rating_scale', 'Rating Scale (1-5)'),
+        ('yes_no', 'Yes/No'),
+    ]
+    
+    POLL_STATUS = [
+        ('draft', 'Draft'),
+        ('active', 'Active'),
+        ('ended', 'Ended'),
+    ]
+    
+    teacher = models.ForeignKey(TeacherProfile, on_delete=models.CASCADE)
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    poll_type = models.CharField(max_length=20, choices=POLL_TYPES, default='single_choice')
+    poll_code = models.CharField(max_length=8, unique=True, blank=True)
+    status = models.CharField(max_length=10, choices=POLL_STATUS, default='draft')
+    is_anonymous = models.BooleanField(default=False, help_text="If True, responses are anonymous")
+    allow_multiple_responses = models.BooleanField(default=False, help_text="Allow same person to respond multiple times")
+    created_at = models.DateTimeField(auto_now_add=True)
+    started_at = models.DateTimeField(null=True, blank=True)
+    ended_at = models.DateTimeField(null=True, blank=True)
+    
+    def save(self, *args, **kwargs):
+        if not self.poll_code:
+            self.poll_code = self.generate_poll_code()
+        super().save(*args, **kwargs)
+    
+    def generate_poll_code(self):
+        return ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+    
+    def __str__(self):
+        return f"{self.title} ({self.poll_code})"
+
+
+class PollOption(models.Model):
+    poll = models.ForeignKey(Poll, on_delete=models.CASCADE, related_name='options')
+    option_text = models.CharField(max_length=500)
+    order = models.PositiveIntegerField(default=0)
+    
+    class Meta:
+        ordering = ['order']
+    
+    def __str__(self):
+        return f"{self.poll.title} - Option {self.order}: {self.option_text}"
+
+
+class PollResponse(models.Model):
+    poll = models.ForeignKey(Poll, on_delete=models.CASCADE, related_name='responses')
+    student_name = models.CharField(max_length=100, blank=True, null=True)
+    student_email = models.EmailField(blank=True, null=True)
+    selected_options = models.JSONField(default=list, help_text="List of selected option IDs for choice polls")
+    text_response = models.TextField(blank=True, help_text="Text response for text polls")
+    rating_value = models.IntegerField(null=True, blank=True, help_text="Rating value (1-5) for rating polls")
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    ip_address = models.GenericIPAddressField()
+    
+    class Meta:
+        unique_together = ['poll', 'ip_address']
+    
+    def __str__(self):
+        if self.student_name:
+            return f"{self.student_name} - {self.poll.title}"
+        else:
+            return f"Anonymous - {self.poll.title}"
+
+
+class PollAnalytics(models.Model):
+    poll = models.OneToOneField(Poll, on_delete=models.CASCADE, related_name='analytics')
+    total_responses = models.IntegerField(default=0)
+    response_distribution = models.JSONField(default=dict, help_text="Distribution of responses by option")
+    average_rating = models.FloatField(default=0.0, help_text="Average rating for rating polls")
+    response_timeline = models.JSONField(default=list, help_text="Response timeline data")
+    word_cloud_data = models.JSONField(default=dict, help_text="Word frequencies for text response polls")
+    word_cloud_generated_at = models.DateTimeField(null=True, blank=True, help_text="When word cloud was last generated")
+    generated_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"Analytics for {self.poll.title}" 
