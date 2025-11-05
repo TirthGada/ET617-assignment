@@ -426,17 +426,25 @@ def admin_analytics_view(request):
 
 def teacher_login_view(request):
     """Teacher login/registration view"""
+    # If teacher is already logged in, redirect to dashboard
+    if request.session.get('teacher_id'):
+        return redirect('teacher_dashboard')
+    
     if request.method == 'POST':
         action = request.POST.get('action')
         
         if action == 'logout':
             # Teacher logout
-            request.session.pop('teacher_id', None)
-            request.session.pop('teacher_email', None)
+            request.session.flush()  # Clear all session data
             messages.success(request, 'Teacher logged out successfully!')
             return redirect('home')
         
-        email = request.POST.get('email')
+        email = request.POST.get('email', '').strip()
+        
+        # Validate email
+        if not email:
+            messages.error(request, 'Please provide an email address.')
+            return render(request, 'learning_app/teacher_login.html')
         
         if action == 'login':
             try:
@@ -449,11 +457,22 @@ def teacher_login_view(request):
                 messages.error(request, 'Teacher account not found. Please register first.')
         
         elif action == 'register':
-            username = request.POST.get('username', email.split('@')[0])
+            username = request.POST.get('username', email.split('@')[0]).strip()
+            
+            # Validate inputs
+            if not username:
+                messages.error(request, 'Please provide a username.')
+                return render(request, 'learning_app/teacher_login.html')
             
             if TeacherProfile.objects.filter(email=email).exists():
                 messages.error(request, 'Teacher account with this email already exists.')
-            else:
+                return render(request, 'learning_app/teacher_login.html')
+            
+            if User.objects.filter(username=username).exists():
+                messages.error(request, f'Username "{username}" is already taken. Please choose another.')
+                return render(request, 'learning_app/teacher_login.html')
+            
+            try:
                 # Create user and teacher profile
                 user = User.objects.create_user(
                     username=username,
@@ -466,15 +485,23 @@ def teacher_login_view(request):
                 )
                 request.session['teacher_id'] = teacher_profile.id
                 request.session['teacher_email'] = email
-                messages.success(request, 'Teacher account created successfully!')
+                messages.success(request, f'Teacher account created successfully! Welcome, {username}!')
                 return redirect('teacher_dashboard')
+            except Exception as e:
+                messages.error(request, f'Error creating account: {str(e)}')
+                return render(request, 'learning_app/teacher_login.html')
     
+    # For GET requests, just render the login page
     return render(request, 'learning_app/teacher_login.html')
 
 
 def teacher_required(view_func):
     """Decorator to ensure user is authenticated as teacher"""
     def wrapper(request, *args, **kwargs):
+        # Check if accessing the teacher login page (avoid redirect loop)
+        if request.resolver_match.url_name == 'teacher_login':
+            return view_func(request, *args, **kwargs)
+        
         if not request.session.get('teacher_id'):
             messages.error(request, 'Please login as a teacher first.')
             return redirect('teacher_login')
@@ -1278,16 +1305,6 @@ def student_help_content(request, quiz_id):
 
 # ============ POLL SYSTEM VIEWS ============
 
-def teacher_required(view_func):
-    """Decorator to check if user is logged in as teacher"""
-    def wrapper(request, *args, **kwargs):
-        teacher_id = request.session.get('teacher_id')
-        if not teacher_id:
-            messages.error(request, 'Please login as a teacher first.')
-            return redirect('teacher_login')
-        return view_func(request, *args, **kwargs)
-    return wrapper
-
 
 @teacher_required
 def teacher_polls(request):
@@ -1353,10 +1370,38 @@ def edit_poll(request, poll_id):
     if request.method == 'POST':
         poll.title = request.POST.get('title')
         poll.description = request.POST.get('description', '')
-        poll.poll_type = request.POST.get('poll_type')
+        # poll_type cannot be changed after creation
         poll.is_anonymous = request.POST.get('is_anonymous') == 'on'
         poll.allow_multiple_responses = request.POST.get('allow_multiple_responses') == 'on'
         poll.save()
+        
+        # Handle option updates for choice-based polls
+        if poll.poll_type in ['single_choice', 'multiple_choice', 'yes_no']:
+            # Get option data from POST
+            option_texts = request.POST.getlist('option_text')
+            option_ids = request.POST.getlist('option_id')
+            
+            # Update existing options
+            for i, option_id in enumerate(option_ids):
+                if option_id and i < len(option_texts):
+                    try:
+                        option = PollOption.objects.get(id=option_id, poll=poll)
+                        option.option_text = option_texts[i].strip()
+                        option.order = i
+                        if option.option_text:  # Only save if not empty
+                            option.save()
+                    except PollOption.DoesNotExist:
+                        pass  # Skip if option doesn't exist
+            
+            # Handle new options (those without IDs)
+            new_option_texts = request.POST.getlist('new_option_text')
+            for i, option_text in enumerate(new_option_texts):
+                if option_text.strip():
+                    PollOption.objects.create(
+                        poll=poll,
+                        option_text=option_text.strip(),
+                        order=len(option_ids) + i
+                    )
         
         messages.success(request, 'Poll updated successfully!')
         return redirect('edit_poll', poll_id=poll.id)
@@ -1564,7 +1609,11 @@ def poll_results(request, poll_id):
     poll = get_object_or_404(Poll, id=poll_id, teacher=teacher_profile)
     
     responses = poll.responses.all()
-    analytics = getattr(poll, 'analytics', None)
+    # Properly fetch the analytics object from the database
+    try:
+        analytics = PollAnalytics.objects.get(poll=poll)
+    except PollAnalytics.DoesNotExist:
+        analytics = None
     
     context = {
         'poll': poll,
