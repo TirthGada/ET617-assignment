@@ -1580,12 +1580,17 @@ def generate_poll_analytics(poll):
     # Generate word cloud data for text response polls
     word_cloud_data = {}
     word_cloud_generated_at = None
+    word_cloud_image = None
     
     if poll.poll_type == 'text_response':
         print(f"🎯 Generating word cloud for text response poll: {poll.title}")
         text_responses = [response.text_response for response in responses if response.text_response]
         word_cloud_data = generate_word_cloud_data(text_responses)
         word_cloud_generated_at = timezone.now()
+        
+        # Generate actual word cloud image
+        from .utils import generate_word_cloud_image
+        word_cloud_image = generate_word_cloud_image(word_cloud_data)
     
     # Save analytics
     PollAnalytics.objects.update_or_create(
@@ -1596,7 +1601,8 @@ def generate_poll_analytics(poll):
             'average_rating': average_rating,
             'response_timeline': response_timeline,
             'word_cloud_data': word_cloud_data,
-            'word_cloud_generated_at': word_cloud_generated_at
+            'word_cloud_generated_at': word_cloud_generated_at,
+            'word_cloud_image': word_cloud_image  # Add word cloud image to analytics
         }
     )
 

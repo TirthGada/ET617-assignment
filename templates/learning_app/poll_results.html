@@ -57,12 +57,21 @@
                 {% endif %}
                 
                 <!-- Word Cloud (for text response polls) -->
-                {% if poll.poll_type == 'text_response' and analytics.word_cloud_data %}
+                {% if poll.poll_type == 'text_response' %}
                 <div class="card mb-4">
                     <div class="card-header">
                         <h5 class="mb-0"><i class="fas fa-cloud me-2"></i>Word Cloud Analysis</h5>
                     </div>
                     <div class="card-body">
+                        {% if analytics and analytics.word_cloud_image %}
+                        <div class="text-center">
+                            <img src="data:image/png;base64,{{ analytics.word_cloud_image }}" class="img-fluid rounded" alt="Word Cloud Visualization">
+                            <small class="text-muted d-block mt-2">
+                                Word cloud visualization of student responses
+                            </small>
+                        </div>
+                        {% elif analytics and analytics.word_cloud_data %}
+                        <!-- Fallback to interactive word cloud if image generation failed -->
                         <div id="finalWordCloudContainer" class="word-cloud-container">
                             <!-- Word cloud will be rendered here by JavaScript -->
                         </div>
@@ -82,6 +91,13 @@
                                 </div>
                             </div>
                         </div>
+                        {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-cloud fa-2x text-muted mb-3"></i>
+                            <h6 class="text-muted">No word cloud data available</h6>
+                            <p class="text-muted small">Waiting for text responses...</p>
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
                 {% endif %}

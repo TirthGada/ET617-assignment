@@ -2,6 +2,16 @@ from django.utils import timezone
 from .models import ClickstreamEvent
 import re
 from collections import Counter
+import base64
+import io
+
+# Import wordcloud library
+try:
+    from wordcloud import WordCloud
+    import matplotlib.pyplot as plt
+    WORDCLOUD_AVAILABLE = True
+except ImportError:
+    WORDCLOUD_AVAILABLE = False
 
 
 def get_client_ip(request):
@@ -230,4 +240,53 @@ def create_word_cloud_visualization(word_cloud_data, max_words=30):
         'total_words': total_words,
         'unique_words': unique_words,
         'max_frequency': max_freq if sorted_words else 0
-    } 
+    }
+
+
+def generate_word_cloud_image(word_cloud_data):
+    """
+    Generate an actual word cloud image from word frequencies
+    
+    Args:
+        word_cloud_data (dict): Word frequencies dictionary
+        
+    Returns:
+        str: Base64 encoded image data or None if failed
+    """
+    if not WORDCLOUD_AVAILABLE or not word_cloud_data:
+        return None
+    
+    try:
+        # Create word cloud
+        wordcloud = WordCloud(
+            width=800, 
+            height=400, 
+            background_color='white',
+            colormap='viridis',
+            relative_scaling=0.5,
+            max_words=100,
+            min_font_size=10,
+            max_font_size=70
+        ).generate_from_frequencies(word_cloud_data)
+        
+        # Create plot
+        plt.figure(figsize=(10, 5))
+        plt.imshow(wordcloud, interpolation='bilinear')
+        plt.axis('off')
+        plt.tight_layout(pad=0)
+        
+        # Save to bytes
+        buffer = io.BytesIO()
+        plt.savefig(buffer, format='png', bbox_inches='tight', dpi=150)
+        buffer.seek(0)
+        
+        # Convert to base64
+        image_data = base64.b64encode(buffer.getvalue()).decode()
+        
+        # Close plot to free memory
+        plt.close()
+        
+        return image_data
+    except Exception as e:
+        print(f"Error generating word cloud image: {e}")
+        return None

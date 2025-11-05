@@ -363,6 +363,7 @@ class PollAnalytics(models.Model):
     response_timeline = models.JSONField(default=list, help_text="Response timeline data")
     word_cloud_data = models.JSONField(default=dict, help_text="Word frequencies for text response polls")
     word_cloud_generated_at = models.DateTimeField(null=True, blank=True, help_text="When word cloud was last generated")
+    word_cloud_image = models.TextField(blank=True, null=True, help_text="Base64 encoded word cloud image")
     generated_at = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
