@@ -11,7 +11,8 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-this-in-produc
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=True, cast=bool)
 
-ALLOWED_HOSTS = ['*', '.vercel.app', '127.0.0.1', 'localhost']
+# Fixed ALLOWED_HOSTS for Render deployment
+ALLOWED_HOSTS = ['*', '.vercel.app', '.onrender.com', '127.0.0.1', 'localhost', 'learning-platform-5ies.onrender.com']
 
 # Application definition
 INSTALLED_APPS = [
@@ -35,7 +36,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'learning_app.middleware.ClickstreamMiddleware',
+    # Temporarily disabled custom middleware to prevent startup issues
+    # 'learning_app.middleware.ClickstreamMiddleware',
 ]
 
 ROOT_URLCONF = 'learning_platform.urls'
@@ -58,8 +60,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'learning_platform.wsgi.application'
 
-# Database
-# Use in-memory SQLite for Vercel deployment
+# Database - Fixed for Render deployment
 if config('DEBUG', default=True, cast=bool):
     # Local development - use file-based SQLite
     DATABASES = {
@@ -69,11 +70,11 @@ if config('DEBUG', default=True, cast=bool):
         }
     }
 else:
-    # Production/Vercel - use in-memory SQLite
+    # Production - use file-based SQLite (not in-memory) for better stability
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': ':memory:',
+            'NAME': BASE_DIR / 'db.sqlite3',  # Changed from ':memory:' to file-based
         }
     }
 
@@ -119,4 +120,10 @@ LOGOUT_REDIRECT_URL = '/'
 
 # Media files
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media' 
+MEDIA_ROOT = BASE_DIR / 'media'
+
+# Additional settings for Render deployment
+if not DEBUG:
+    # Security settings for production
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
