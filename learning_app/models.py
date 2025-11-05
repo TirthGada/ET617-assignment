@@ -342,7 +342,11 @@ class PollResponse(models.Model):
     ip_address = models.GenericIPAddressField()
     
     class Meta:
-        unique_together = ['poll', 'ip_address']
+        # Remove the unique constraint to allow multiple responses from same IP when allowed
+        # Index on poll and ip_address for performance
+        indexes = [
+            models.Index(fields=['poll', 'ip_address']),
+        ]
     
     def __str__(self):
         if self.student_name:
