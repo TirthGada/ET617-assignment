@@ -3,6 +3,8 @@ LLM utilities for quiz generation and student analysis
 """
 import requests
 import json
+import os
+
 try:
     import PyPDF2
     PDF_AVAILABLE = True
